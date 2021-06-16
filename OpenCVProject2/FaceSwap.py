@@ -27,6 +27,8 @@ def detectAndDisplay(frame):
 
         frame[y1 : y1 + faceROI2.shape[0], x1 :x1 + faceROI2.shape[1]] = faceROI2
         frame[y2 : y2 + faceROI1.shape[0], x2 :x2 + faceROI1.shape[1]] = faceROI1
+        cv.imshow("face1", faceROI1)
+        cv.imshow("face2", faceROI2)
 
     cv.imshow('Capture - Face detection', frame)
 
