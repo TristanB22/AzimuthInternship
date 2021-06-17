@@ -14,19 +14,26 @@ def detectAndDisplay(frame):
         faceROI1 = frame[y1 : y1 + h1, x1 : x1 + w1]
         faceROI2 = frame[y2 : y2 + h2, x2 : x2 + w2]
 
-        if(faceROI1.shape[0] > faceROI2.shape[0]):
-            diff = faceROI1.shape[0] - faceROI2.shape[0]
-            if(diff % 2 == 1):
-                faceROI1 = faceROI1[0 : faceROI1.shape[0] - 1, 0 : faceROI1.shape[0] - 1]
-            faceROI1 = faceROI1[int(diff / 2) : faceROI1.shape[0] - int(diff / 2), int(diff / 2) : faceROI1.shape[0] - int(diff / 2)]
-        elif (faceROI1.shape[0] < faceROI2.shape[0]):
-            diff = faceROI2.shape[0] - faceROI1.shape[0]
-            if(diff % 2 == 1):
-                faceROI2 = faceROI2[0 : faceROI2.shape[0] - 1, 0 : faceROI2.shape[0] - 1]
-            faceROI2 = faceROI2[int(diff / 2) : faceROI2.shape[0] - int(diff / 2), int(diff / 2) : faceROI2.shape[0] - int(diff / 2)]
+        ROI1shape = faceROI1.shape[0]
+        ROI2shape = faceROI2.shape[0]
+        
+        faceROI1 = cv.resize(faceROI1, (ROI2shape, ROI2shape))
+        faceROI2 = cv.resize(faceROI2, (ROI1shape, ROI1shape))
+
+        # if(faceROI1.shape[0] > faceROI2.shape[0]):
+        #     diff = faceROI1.shape[0] - faceROI2.shape[0]
+        #     if(diff % 2 == 1):
+        #         faceROI1 = faceROI1[0 : faceROI1.shape[0] - 1, 0 : faceROI1.shape[0] - 1]
+        #     faceROI1 = faceROI1[int(diff / 2) : faceROI1.shape[0] - int(diff / 2), int(diff / 2) : faceROI1.shape[0] - int(diff / 2)]
+        # elif (faceROI1.shape[0] < faceROI2.shape[0]):
+        #     diff = faceROI2.shape[0] - faceROI1.shape[0]
+        #     if(diff % 2 == 1):
+        #         faceROI2 = faceROI2[0 : faceROI2.shape[0] - 1, 0 : faceROI2.shape[0] - 1]
+        #     faceROI2 = faceROI2[int(diff / 2) : faceROI2.shape[0] - int(diff / 2), int(diff / 2) : faceROI2.shape[0] - int(diff / 2)]
 
         frame[y1 : y1 + faceROI2.shape[0], x1 :x1 + faceROI2.shape[1]] = faceROI2
         frame[y2 : y2 + faceROI1.shape[0], x2 :x2 + faceROI1.shape[1]] = faceROI1
+        
         cv.imshow("face1", faceROI1)
         cv.imshow("face2", faceROI2)
 
