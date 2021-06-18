@@ -5,6 +5,7 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 import matplotlib.image as mping
 import numpy as np
+import pytesseract
 
 img = cv.imread("/Users/tristanbrigham/GithubProjects/AzimuthInternship/OpenCVProject1/White_text_Black_Background.jpg")
 imgray = img.copy()
@@ -33,6 +34,9 @@ contours = contours[0] if len(contours)==2 else contours
 # cv.waitKey(0)
 # cv.destroyAllWindows()
 regionOfInterest = 0
+
+print(pytesseract.image_to_string(img))
+
 for contour in contours:
     x, y, w, h = cv.boundingRect(contour)
     ROI = imgray[y:y + h, x:x + w]

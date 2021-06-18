@@ -69,12 +69,16 @@ def showImageOutline(img):
             warped = cv.cvtColor(warped, cv.COLOR_BGR2GRAY)
             T = threshold_local(warped, 11, offset = 10, method = "gaussian")       #I don't get this line or the next one
             warped = (warped > T).astype("uint8") * 255
+            warped = cv.flip(warped, 0)
+            warped = cv.rotate(warped, cv.ROTATE_90_COUNTERCLOCKWISE)
 
             cv.imshow("Original", imutils.resize(img, height = 650))
-            cv.imshow("Scanned", imutils.resize(warped, height = 650))
-            if cv.waitKey(10) & 0xFF == ord('q'):
+            cv.imshow("Scanned", imutils.resize(warped, height = 250))
+            cv.waitKey(1)
+            if cv.waitKey(0) & 0xFF == ord('q'):
                 exit(0)
 
+print("\n\n\nWELCOME!!\nPLEASE TYPE 'q' TO EXIT\nTYPE ANY OTHER KEY TO UPDATE IMAGE")
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--image", type = int, default = 0,
