@@ -1,5 +1,5 @@
-from skimage.filters import threshold_local    # help from 
-import numpy as np
+from skimage.filters import threshold_local    # help from https://www.pyimagesearch.com/2014/09/01/build-kick-ass-mobile-document-scanner-just-5-minutes/
+import numpy as np                             # A lot of the code is based off of the site above, but I coded everything by hand so I would understand it
 import argparse
 import cv2 as cv
 import imutils
@@ -45,6 +45,10 @@ def showImageOutline(img):
     ratio = img.shape[0] / 500.0
     frame = img.copy()
     img = imutils.resize(img, height = 500)
+
+    # thresh = cv.threshold(imgray, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
+    # imgray = cv.Canny(imgray, 250, 254)
+    # contours, hierarchy = cv.findContours(imgray, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
 
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     gray = cv.GaussianBlur(gray, (5, 5), 0)
