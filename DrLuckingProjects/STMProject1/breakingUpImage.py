@@ -6,9 +6,11 @@ img = plt.imread("/Users/tristanbrigham/GithubProjects/AzimuthInternship/DrLucki
 print("Size: {}".format(img.shape))
 
 yAmt = int(img.shape[1] /  14)
-offset = int(yAmt / 2)
+offsetY = int(yAmt / 2)
 
 xAmt = int(img.shape[0] / 12)
+# offsetX = int(xAmt / 2)
+offsetX = xAmt     #uncomment the above line and comment this one to add overlap
 
 count = 0
 x = xAmt
@@ -18,12 +20,12 @@ for i in range(500):
 
 while x < img.shape[1]:
     y = yAmt
-    while y < img.shape[0] - offset:
+    while y < img.shape[0] - offsetY:
         imgTemp = img[y - yAmt:y, x - xAmt:x]
         plt.imsave("Portion{}.png".format(count), imgTemp)
         count += 1
-        y += offset
+        y += offsetY
         if(count > 1000):
             exit()
-    x += xAmt
+    x += offsetX
 print("----------------------------—SUCCESS----------------------------—")
