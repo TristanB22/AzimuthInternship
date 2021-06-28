@@ -7,7 +7,8 @@ import matplotlib.image as mping
 import numpy as np
 import pytesseract
 
-img = cv.imread("/Users/tristanbrigham/GithubProjects/AzimuthInternship/OpenCVProject1/White_text_Black_Background.jpg")
+img = cv.imread("/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcherProjects/OpenCVProject1/White_text_Black_Background.jpg")
+img = cv.imread("/Users/tristanbrigham/Downloads/fileToAnalyze.jpeg")
 imgray = img.copy()
 imgray = cv.cvtColor(imgray, cv.COLOR_BGR2GRAY)
 imgray = cv.GaussianBlur(imgray, (7, 7), 0)
