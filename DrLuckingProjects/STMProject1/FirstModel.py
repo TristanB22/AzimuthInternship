@@ -7,7 +7,7 @@ from functools import partial
 img = plt.imread("/Users/tristanbrigham/GithubProjects/AzimuthInternship/DrLuckingProjects/STMProject1/firstSTM.png")
 print("Size: {}".format(img.shape))
 
-finalArray = np.zeros((336, 17, 15, 4))
+finalArray = np.zeros((436, 17, 15, 4))
 
 yAmt = int(img.shape[1] /  14)
 offsetY = int(yAmt / 2)
@@ -34,17 +34,27 @@ while x < img.shape[1]:
     
 print(finalArray.shape)
 
-imagesWithDefects = [23, 24, 25, 179, 199, 200, 201, 221, 222, 223]
-labels = np.zeros((336)) #going to be a zero if there is no defect
+imagesWithDefectsNumbers = [23, 24, 25, 179, 199, 200, 201, 221, 222, 223]
+imagesWithDefects = np.zeros((10, 17, 15, 4))
 
-for i in imagesWithDefects:
+count2 = 0
+for i in range(count2):
+    finalArray[336 + (i * 10) : 346 + (i * 10)] = imagesWithDefects[0 : 10]
+
+labels = np.zeros((436)) #going to be a zero if there is no defect
+
+count = 0
+for i in imagesWithDefectsNumbers:
     labels[i] = 1
+    imagesWithDefects[count] = finalArray[i]
+    count += 1
 
-def inputFunction(features, labels, Training=True, batchSize=36):
-  data = tf.data.Dataset.from_tensor_slices((dict(features), labels))
-  if Training:
-    data = data.shuffle(1000).repeat()
-  return data.batch(batchSize)
+index = 30
+for i in range(10):
+    finalArray[index : index + 10] = imagesWithDefects[0: 10]
+    index += 40
+
+
 
 DefaultConv2D = partial(keras.layers.Conv2D,
                         kernel_size=3, activation='relu', padding="SAME")
@@ -73,11 +83,11 @@ model = keras.models.Sequential([
 
 
 model.compile(loss="sparse_categorical_crossentropy", optimizer="nadam", metrics=["accuracy"])
-history = model.fit(finalArray[:325, :, :, :], labels[:325], epochs=4, validation_data=(finalArray[325:, :, :, :], labels[325:]))
+history = model.fit(finalArray, labels, epochs=20, validation_data=(finalArray[325:, :, :, :], labels[325:]))
 score = model.evaluate(finalArray[325:, :, :, :], labels[325:])
 
 # print("Accuracy: {}".format(score[0]['accuracy']))
-X_new = finalArray[:30] # pretend we have new images
+X_new = finalArray # pretend we have new images
 y_pred = model.predict(X_new)
 count = 0
 for pred in y_pred:
