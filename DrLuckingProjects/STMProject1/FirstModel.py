@@ -40,6 +40,12 @@ labels = np.zeros((336)) #going to be a zero if there is no defect
 for i in imagesWithDefects:
     labels[i] = 1
 
+def inputFunction(features, labels, Training=True, batchSize=36):
+  data = tf.data.Dataset.from_tensor_slices((dict(features), labels))
+  if Training:
+    data = data.shuffle(1000).repeat()
+  return data.batch(batchSize)
+
 DefaultConv2D = partial(keras.layers.Conv2D,
                         kernel_size=3, activation='relu', padding="SAME")
 model = keras.models.Sequential([
@@ -65,16 +71,18 @@ model = keras.models.Sequential([
     keras.layers.Dense(units=2, activation='softmax'),
 ])
 
+
 model.compile(loss="sparse_categorical_crossentropy", optimizer="nadam", metrics=["accuracy"])
 history = model.fit(finalArray[:325, :, :, :], labels[:325], epochs=4, validation_data=(finalArray[325:, :, :, :], labels[325:]))
 score = model.evaluate(finalArray[325:, :, :, :], labels[325:])
 
 # print("Accuracy: {}".format(score[0]['accuracy']))
-X_new = finalArray[:10] # pretend we have new images
+X_new = finalArray[:30] # pretend we have new images
 y_pred = model.predict(X_new)
 count = 0
 for pred in y_pred:
     if possibleResults[pred.argmax()] != labels[count]:
-        print("Image {} was incorrect".format(count))
+        print("Image {} was incorrect :: {}".format(count, labels[count]))
         plt.imshow(finalArray[count])
     count += 1
+plt.show()
