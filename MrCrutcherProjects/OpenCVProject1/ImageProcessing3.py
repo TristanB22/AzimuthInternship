@@ -8,7 +8,7 @@ import numpy as np
 import pytesseract
 
 img = cv.imread("/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcherProjects/OpenCVProject1/White_text_Black_Background.jpg")
-img = cv.imread("/Users/tristanbrigham/Downloads/fileToAnalyze.jpeg")
+# img = cv.imread("/Users/tristanbrigham/Downloads/fileToAnalyze.jpeg")
 imgray = img.copy()
 imgray = cv.cvtColor(imgray, cv.COLOR_BGR2GRAY)
 imgray = cv.GaussianBlur(imgray, (7, 7), 0)
@@ -25,12 +25,13 @@ imgray = cv.GaussianBlur(imgray, (7, 7), 0)
 # imgray = cv.addWeighted(imgray, 1, imgShift, 1, 0)
 
 imgray = cv.dilate(imgray, (3, 50), iterations = 20)
-thresh = cv.threshold(imgray, 0, 127, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
+thresh = cv.threshold(imgray, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
 # imgray = cv.Canny(imgray, 250, 254)
 contours, _ = cv.findContours(imgray, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+
 imgray = cv.cvtColor(imgray, cv.COLOR_GRAY2BGR)
-cv.drawContours(imgray, contours, -1, (255, 255, 255), 10)
-contours = contours[0] if len(contours)==2 else contours
+cv.drawContours(imgray, contours, -1, (0, 255, 0), 10)
+# contours = contours[0] if len(contours)==2 else contours
 # cv.imshow("grayImage", imgray)
 # cv.waitKey(0)
 # cv.destroyAllWindows()
