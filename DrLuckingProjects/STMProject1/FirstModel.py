@@ -76,16 +76,15 @@ model = keras.models.Sequential([
 
 
 model.compile(loss="sparse_categorical_crossentropy", optimizer="nadam", metrics=["accuracy"])
-history = model.fit(finalArray, labels, epochs=20, validation_data=(finalArray[325:, :, :, :], labels[325:]))
+history = model.fit(finalArray, labels, epochs=20, validation_data=(finalArray[300:, :, :, :], labels[300:]))
 score = model.evaluate(finalArray[325:, :, :, :], labels[325:])
 
 # print("Accuracy: {}".format(score[0]['accuracy']))
 X_new = finalArray # pretend we have new images
 y_pred = model.predict(X_new)
-count = 0
-for pred in y_pred:
+for i in range(436):
+    pred = y_pred[i]
     if possibleResults[pred.argmax()] != labels[count]:
         print("Image {} was incorrect :: {}".format(count, labels[count]))
         plt.imshow(finalArray[count])
-    count += 1
 plt.show()
