@@ -37,11 +37,8 @@ print(finalArray.shape)
 imagesWithDefectsNumbers = [23, 24, 25, 179, 199, 200, 201, 221, 222, 223]
 imagesWithDefects = np.zeros((10, 17, 15, 4))
 
-count2 = 0
-for i in range(count2):
-    finalArray[336 + (i * 10) : 346 + (i * 10)] = imagesWithDefects[0 : 10]
-
 labels = np.zeros((436)) #going to be a zero if there is no defect
+labels[336 : 437] = np.ones((100))
 
 count = 0
 for i in imagesWithDefectsNumbers:
@@ -49,12 +46,8 @@ for i in imagesWithDefectsNumbers:
     imagesWithDefects[count] = finalArray[i]
     count += 1
 
-index = 30
 for i in range(10):
-    finalArray[index : index + 10] = imagesWithDefects[0: 10]
-    index += 40
-
-
+    finalArray[336 + (i * 10) : 346 + (i * 10)] = imagesWithDefects[0 : 10]
 
 DefaultConv2D = partial(keras.layers.Conv2D,
                         kernel_size=3, activation='relu', padding="SAME")
