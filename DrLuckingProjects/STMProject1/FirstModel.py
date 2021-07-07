@@ -5,6 +5,51 @@ import tensorflow as tf
 from tensorflow import keras
 from functools import partial
 
+def train_model(labels, finalArray):
+    DefaultConv2D = partial(keras.layers.Conv2D,
+                        kernel_size=3, activation='relu', padding="SAME")
+    model = keras.models.Sequential([
+        #first layer is 64 7x7 filters
+        DefaultConv2D(filters=64, kernel_size=7, input_shape=[17, 15, 4]),
+        # pool reduce each spatial dimension by factor of 2
+        keras.layers.MaxPooling2D(pool_size=2),
+        #Repeat 2 convolution layers followed by one pool twice
+        #number of filters increases as go further along
+        DefaultConv2D(filters=128),
+        DefaultConv2D(filters=128),
+        keras.layers.MaxPooling2D(pool_size=2),
+        DefaultConv2D(filters=256),
+        DefaultConv2D(filters=256),
+        keras.layers.MaxPooling2D(pool_size=2),
+        #need to flatten input for dense layer because need 1D array for input
+        keras.layers.Flatten(),
+        #Fully connected network, dropout layer to reduce overfit
+        keras.layers.Dense(units=128, activation='relu'),
+        keras.layers.Dropout(0.5),
+        keras.layers.Dense(units=64, activation='relu'),
+        keras.layers.Dropout(0.5),
+        keras.layers.Dense(units=2, activation='softmax'),
+    ])
+
+
+    model.compile(loss="sparse_categorical_crossentropy", optimizer="nadam", metrics=["accuracy"])
+    history = model.fit(finalArray, labels, epochs=30, validation_data=(finalArray[300:, :, :, :], labels[300:]))
+    score = model.evaluate(finalArray[325:, :, :, :], labels[325:])
+
+    countTrain = 0
+
+    X_new = finalArray # pretend we have new images
+    y_pred = model.predict(X_new)
+    for i in range(436):
+        pred = y_pred[i]
+        if possibleResults[pred.argmax()] != labels[i]:
+            countTrain += 1
+            print("Validation Image {} was incorrect :: {}".format(i, labels[count]))
+
+    if countTrain > 10 :
+        return train_model(labels, finalArray)
+    return model, score
+
 factor = 2
 imagesWithDefectsNumbers = [23, 24, 25, 179, 199, 200, 201, 221, 222, 223]
 
@@ -58,7 +103,6 @@ while x < img1.shape[1]:
         y += offsetY
         if(count > 1000):
             exit()
-    print("Count: {}".format(count))
     x += offsetX
 # 
 # finalArray[336: 672] = finalArray2
@@ -94,42 +138,9 @@ print("x sect # is {} and y sect # is {}".format(xSections, ySections))
 # 21 sections in y direction
 # 16 sections in x direction
 
-DefaultConv2D = partial(keras.layers.Conv2D,
-                        kernel_size=3, activation='relu', padding="SAME")
-model = keras.models.Sequential([
-    #first layer is 64 7x7 filters
-    DefaultConv2D(filters=64, kernel_size=7, input_shape=[17, 15, 4]),
-    # pool reduce each spatial dimension by factor of 2
-    keras.layers.MaxPooling2D(pool_size=2),
-    #Repeat 2 convolution layers followed by one pool twice
-    #number of filters increases as go further along
-    DefaultConv2D(filters=128),
-    DefaultConv2D(filters=128),
-    keras.layers.MaxPooling2D(pool_size=2),
-    DefaultConv2D(filters=256),
-    DefaultConv2D(filters=256),
-    keras.layers.MaxPooling2D(pool_size=2),
-    #need to flatten input for dense layer because need 1D array for input
-    keras.layers.Flatten(),
-    #Fully connected network, dropout layer to reduce overfit
-    keras.layers.Dense(units=128, activation='relu'),
-    keras.layers.Dropout(0.5),
-    keras.layers.Dense(units=64, activation='relu'),
-    keras.layers.Dropout(0.5),
-    keras.layers.Dense(units=2, activation='softmax'),
-])
+model, score = train_model(labels, finalArray)
 
-
-model.compile(loss="sparse_categorical_crossentropy", optimizer="nadam", metrics=["accuracy"])
-history = model.fit(finalArray, labels, epochs=30, validation_data=(finalArray[300:, :, :, :], labels[300:]))
-score = model.evaluate(finalArray[325:, :, :, :], labels[325:])
 # print("Accuracy: {}".format(score[0]['accuracy']))
-X_new = finalArray # pretend we have new images
-y_pred = model.predict(X_new)
-for i in range(436):
-    pred = y_pred[i]
-    if possibleResults[pred.argmax()] != labels[i]:
-        print("Validation Image {} was incorrect :: {}".format(i, labels[count]))
 
 for count in imagesWithDefectsNumbers:
     x = offsetX * int(count / ySections) + xAmt
