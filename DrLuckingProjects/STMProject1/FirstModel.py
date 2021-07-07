@@ -1,18 +1,38 @@
 import numpy as np
+import cv2 as cv
 import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
 from functools import partial
 
-img = plt.imread("/Users/tristanbrigham/GithubProjects/AzimuthInternship/DrLuckingProjects/STMProject1/firstSTM.png")
-print("Size: {}".format(img.shape))
+factor = 2
+imagesWithDefectsNumbers = [23, 24, 25, 179, 199, 200, 201, 221, 222, 223]
+
+img1 = plt.imread("/Users/tristanbrigham/GithubProjects/AzimuthInternship/DrLuckingProjects/STMProject1/firstSTM.png")
+img2 = plt.imread("/Users/tristanbrigham/GithubProjects/AzimuthInternship/DrLuckingProjects/STMProject1/image2.png")
+img3 = plt.imread("/Users/tristanbrigham/GithubProjects/AzimuthInternship/DrLuckingProjects/STMProject1/image3.png")
+
+imgCopy = img1.copy()
+img2 = cv.resize(img2, dsize=(img1.shape[1], img1.shape[0]), interpolation=cv.INTER_NEAREST)
+img3 = cv.resize(img3, dsize=(img1.shape[1], img1.shape[0]), interpolation=cv.INTER_NEAREST)
+
+print("Size1: {}".format(img1.shape))
+print("Size2: {}".format(img2.shape))
+print("Size3: {}".format(img3.shape))
+
+imagesWithDefects = np.zeros((10, 17, 15, 4))
 
 finalArray = np.zeros((436, 17, 15, 4))
+# finalArray2 = np.zeros((336, 17, 15, 4))
+# finalArray3 = np.zeros((336, 17, 15, 4))
 
-yAmt = int(img.shape[1] /  14)
+img2Array = np.zeros((336, 17, 15, 4))
+img3Array = np.zeros((336, 17, 15, 4))
+
+yAmt = int(img1.shape[1] /  14)
 offsetY = int(yAmt / 2)
 
-xAmt = int(img.shape[0] / 12)
+xAmt = int(img1.shape[0] / 12)
 # offsetX = int(xAmt / 2)
 offsetX = xAmt     #uncomment the above line and comment this one to add overlap
 
@@ -21,24 +41,41 @@ x = xAmt
 
 possibleResults = [0, 1]
 
-while x < img.shape[1]:
+while x < img1.shape[1]:
     y = yAmt
-    while y < img.shape[0] - offsetY:
-        imgTemp = img[y - yAmt:y, x - xAmt:x]
-        finalArray[count] = imgTemp
+    while y < img1.shape[0] - offsetY:
+        if count in imagesWithDefectsNumbers:
+            cv.rectangle(imgCopy, (x - xAmt, y - yAmt), (x, y), (0, 255, 0))
+        imgTemp1 = img1[y - yAmt:y, x - xAmt:x]
+        finalArray[count] = imgTemp1
+        
+        imgTemp2 = img2[y - yAmt:y, x - xAmt:x]
+        img2Array[count] = imgTemp2
+
+        imgTemp3 = img3[y - yAmt:y, x - xAmt:x]
+        img3Array[count] = imgTemp3
         count += 1
         y += offsetY
         if(count > 1000):
             exit()
+    print("Count: {}".format(count))
     x += offsetX
+# 
+# finalArray[336: 672] = finalArray2
+# finalArray[672: 1008] = finalArray3
+
+# count = 0
+# for img in finalArray[:1008]:
+#     cv.imwrite("Img{}.png".format(count), img)
+#     count += 1
     
 print(finalArray.shape)
 
-imagesWithDefectsNumbers = [23, 24, 25, 179, 199, 200, 201, 221, 222, 223]
-imagesWithDefects = np.zeros((10, 17, 15, 4))
+# labels = np.zeros((1108)) #going to be a zero if there is no defect
+# labels[1008 : 1109] = np.ones((100))
 
-labels = np.zeros((436)) #going to be a zero if there is no defect
-labels[336 : 437] = np.ones((100))
+labels = np.zeros((436))
+labels[336: 436] = np.ones((100))
 
 count = 0
 for i in imagesWithDefectsNumbers:
@@ -47,7 +84,15 @@ for i in imagesWithDefectsNumbers:
     count += 1
 
 for i in range(10):
+    # finalArray[1008 + (i * 10) : 1018 + (i * 10)] = imagesWithDefects[0 : 10]
     finalArray[336 + (i * 10) : 346 + (i * 10)] = imagesWithDefects[0 : 10]
+
+xSections = int(img1.shape[1]/finalArray.shape[2])
+ySections = int(336/xSections) #using 336 because count is wonky -- should be final Array y shape
+
+print("x sect # is {} and y sect # is {}".format(xSections, ySections))
+# 21 sections in y direction
+# 16 sections in x direction
 
 DefaultConv2D = partial(keras.layers.Conv2D,
                         kernel_size=3, activation='relu', padding="SAME")
@@ -76,15 +121,61 @@ model = keras.models.Sequential([
 
 
 model.compile(loss="sparse_categorical_crossentropy", optimizer="nadam", metrics=["accuracy"])
-history = model.fit(finalArray, labels, epochs=20, validation_data=(finalArray[300:, :, :, :], labels[300:]))
+history = model.fit(finalArray, labels, epochs=30, validation_data=(finalArray[300:, :, :, :], labels[300:]))
 score = model.evaluate(finalArray[325:, :, :, :], labels[325:])
-
 # print("Accuracy: {}".format(score[0]['accuracy']))
 X_new = finalArray # pretend we have new images
 y_pred = model.predict(X_new)
 for i in range(436):
     pred = y_pred[i]
-    if possibleResults[pred.argmax()] != labels[count]:
-        print("Image {} was incorrect :: {}".format(count, labels[count]))
-        plt.imshow(finalArray[count])
-plt.show()
+    if possibleResults[pred.argmax()] != labels[i]:
+        print("Validation Image {} was incorrect :: {}".format(i, labels[count]))
+
+for count in imagesWithDefectsNumbers:
+    x = offsetX * int(count / ySections) + xAmt
+    y = offsetY * (count % ySections) + yAmt
+    cv.rectangle(img1, (x - xAmt, y - yAmt), (x, y), (0, 255, 0))
+
+newPred2 = model.predict(img2Array)
+count = -1
+defective2 = []
+nonDefective2 = []
+for pred in newPred2:
+    count += 1
+    if possibleResults[pred.argmax()] == 1:
+        defective2.append(count)
+        x = offsetX * int(count / ySections) + xAmt
+        y = offsetY * (count % ySections) + yAmt
+        cv.rectangle(img2, (x - xAmt, y - yAmt), (x, y), (0, 255, 0))
+    else:
+        nonDefective2.append(count)
+
+print("2:\nDEFECTIVE: {} \n\nNONDEFECTIVE: {}\n\n".format(defective2, nonDefective2))
+
+newPred3 = model.predict(img3Array)
+count = -1
+defective3 = []
+nonDefective3 = []
+for pred in newPred3:
+    count += 1
+    if possibleResults[pred.argmax()] == 1:
+        defective3.append(count) 
+        x = offsetX * int(count / ySections) + xAmt
+        y = offsetY * (count % ySections) + yAmt
+        cv.rectangle(img3, (x - xAmt, y - yAmt), (x, y), (0, 255, 0))
+    else:
+        nonDefective3.append(count)
+
+print("3:\nDEFECTIVE: {} \n\nNONDEFECTIVE: {}\n\n".format(defective3, nonDefective3))
+
+imgCopyOUT = cv.resize(imgCopy, dsize=(img1.shape[1]*factor, img1.shape[0]*factor), interpolation=cv.INTER_NEAREST)
+img1OUT = cv.resize(img1, dsize=(img1.shape[1]*factor, img1.shape[0]*factor), interpolation=cv.INTER_NEAREST)
+img2OUT = cv.resize(img2, dsize=(img1.shape[1]*factor, img1.shape[0]*factor), interpolation=cv.INTER_NEAREST)
+img3OUT = cv.resize(img3, dsize=(img1.shape[1]*factor, img1.shape[0]*factor), interpolation=cv.INTER_NEAREST)
+
+cv.imshow("ImgCopy Bounded", imgCopy)
+cv.imshow("Img1 Bounded", img1OUT)
+cv.imshow("Img2 Bounded", img2OUT)
+cv.imshow("Img3 Bounded", img3OUT)
+if cv.waitKey(0) & 0xFF == ord('q'):
+    cv.destroyAllWindows()
