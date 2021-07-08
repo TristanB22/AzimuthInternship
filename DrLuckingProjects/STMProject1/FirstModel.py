@@ -184,7 +184,7 @@ img1OUT = cv.resize(img1, dsize=(img1.shape[1]*factor, img1.shape[0]*factor), in
 img2OUT = cv.resize(img2, dsize=(img1.shape[1]*factor, img1.shape[0]*factor), interpolation=cv.INTER_NEAREST)
 img3OUT = cv.resize(img3, dsize=(img1.shape[1]*factor, img1.shape[0]*factor), interpolation=cv.INTER_NEAREST)
 
-cv.imshow("ImgCopy Bounded", imgCopy)
+cv.imshow("ImgCopy Bounded", imgCopyOUT)
 cv.imshow("Img1 Bounded", img1OUT)
 cv.imshow("Img2 Bounded", img2OUT)
 cv.imshow("Img3 Bounded", img3OUT)
