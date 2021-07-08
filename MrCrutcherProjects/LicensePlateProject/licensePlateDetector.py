@@ -5,18 +5,19 @@ import imutils
 # import pytesseract
 
 class FindPlate:
-    def __init__(self):
+    def __init__(self, imgAddress):
         self.min = 1000
         self.max = 60000
         self.maxAspect = 1
-        self.minAspect = 0.15
-        self.img = cv.resize(cv.imread("/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcherProjects/LicensePlateProject/licensePlate.jpeg"), (640, 480))
+        self.minAspect = 0.1
+        self.img = cv.resize(cv.imread(imgAddress), (640, 480))
         self.element_structure = cv.getStructuringElement(shape=cv.MORPH_RECT, ksize=(5, 5))
 
     def preprocessCanny(self, keep=-1):
         gray = cv.cvtColor(self.img, cv.COLOR_BGR2GRAY)
         gray = cv.GaussianBlur(gray, (5, 5), 0)
-        edged = cv.Canny(gray, 75, 200)
+        edged = cv.Canny(gray, 100, 200)
+        cv.imshow("Canny", edged)
         contours = cv.findContours(edged.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
         contours = imutils.grab_contours(contours)
         contours = sorted(contours, key = cv.contourArea, reverse = True)
@@ -30,21 +31,38 @@ class FindPlate:
             approx = cv.approxPolyDP(c, 0.02 * peri, True)
 
             if len(approx) == 4:
-                ret.append(c)
+                x, y, w, h = cv.boundingRect(c)
+                ratio = h / w
+                if ratio < self.maxAspect and ratio > self.minAspect:
+                    ret.append(c)
 
         return ret 
 
     def drawContours(self, contours):
-        cv.drawContours(self.img, contours, -1, (0, 255, 0), thickness=3)
+        cv.drawContours(self.img, contours, -1, (0, 255, 0), thickness=2)
         
-        # for c in contours:
-        #     rect = cv.boundingRect(c)
+    def run(self):
+        contours = self.preprocessCanny()
+        self.drawContours(contours) 
 
-imageToProcess = FindPlate()
-contours = imageToProcess.preprocessCanny()
-imageToProcess.drawContours(contours)            
+        cv.imshow("Original", imutils.resize(imageToProcess.img, height = 650))
+        while True:
+            key = cv.waitKey(0) & 0xFF
+            if  key == ord('p'):
+                break
+            elif key == ord('q'):
+                exit(0)
 
-cv.imshow("Original", imutils.resize(imageToProcess.img, height = 650))
-cv.waitKey(0)
-if cv.waitKey(0) & 0xFF == ord('q'):
-    exit(0)
+imageAddresses = [
+    "/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcherProjects/LicensePlateProject/licensePlate.jpeg",
+    "/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcherProjects/LicensePlateProject/licensePlate2.jpeg",
+    "/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcherProjects/LicensePlateProject/licensePlate3.jpeg",
+    "/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcherProjects/LicensePlateProject/licensePlate4.jpeg",
+    "/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcherProjects/LicensePlateProject/licensePlate5.jpeg",
+]
+
+print("\n\nWelcome\nPlease press p to continue through the images\nPlease press q to quit the program")
+
+for image in imageAddresses:
+    imageToProcess = FindPlate(image)
+    imageToProcess.run()
