@@ -10,7 +10,8 @@ class FindPlate:
         self.max = 60000
         self.maxAspect = 1
         self.minAspect = 0.1
-        self.img = cv.resize(cv.imread(imgAddress), (640, 480))
+        self.img = cv.resize(cv.imread(imgAddress), (860, 480))
+        self.imgCopy = self.img.copy()
         self.element_structure = cv.getStructuringElement(shape=cv.MORPH_RECT, ksize=(5, 5))
 
     def preprocessCanny(self, keep=-1):
@@ -23,6 +24,8 @@ class FindPlate:
         contours = sorted(contours, key = cv.contourArea, reverse = True)
         
         ret = []
+
+        cv.drawContours(self.imgCopy, contours, -1, (0, 0, 255), thickness=2)
 
         if keep == -1:
             keep=len(contours)
@@ -45,7 +48,8 @@ class FindPlate:
         contours = self.preprocessCanny()
         self.drawContours(contours) 
 
-        cv.imshow("Original", imutils.resize(imageToProcess.img, height = 650))
+        cv.imshow("Original", imutils.resize(imageToProcess.img, height = 300))
+        cv.imshow("Contours", imutils.resize(imageToProcess.imgCopy, height = 300))
         while True:
             key = cv.waitKey(0) & 0xFF
             if  key == ord('p'):
