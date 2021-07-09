@@ -10,8 +10,8 @@ class FindPlate:
         self.max = 60000
         self.maxAspect = 1
         self.minAspect = 0.15
-        self.img = cv.resize(cv.imread("/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcherProjects/LicensePlateProject/licensePlate4.jpeg"), (640, 480))
-        self.element_structure = cv.getStructuringElement(shape=cv.MORPH_RECT, ksize=(5, 5))
+        self.img = cv.resize(cv.imread("/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcherProjects/LicensePlateProject/licensePlate3.jpeg"), (640, 480))
+        self.element_structure = cv.getStructuringElement(shape=cv.MORPH_RECT, ksize=(20, 5))
 
     def preprocessing(self):
         imgBlur = cv.GaussianBlur(self.img, (21, 21), 0)
@@ -36,11 +36,11 @@ class FindPlate:
     def preprocessingCanny(self):
         imgBlur = cv.GaussianBlur(self.img, (19, 19), 0)
         gray = cv.cvtColor(imgBlur, cv.COLOR_BGR2GRAY)
-        ret, thresh = cv.threshold(gray, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
-        element = self.element_structure
-        morph_thresh = thresh.copy()
-        cv.morphologyEx(morph_thresh, op=cv.MORPH_CLOSE, kernel=element, dst=morph_thresh)
-        edged = cv.Canny(gray, 10, 50)
+        # ret, gray = cv.threshold(gray, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
+        # element = self.element_structure
+        # morph_thresh = gray.copy()
+        cv.morphologyEx(gray, op=cv.MORPH_CLOSE, kernel=self.element_structure, dst=gray)
+        edged = cv.Canny(gray, 50, 220)
         cv.imshow("Gray", gray)
         cv.imshow("Canny", edged)
         return edged
@@ -51,10 +51,11 @@ class FindPlate:
         return contours[:keep]
 
     def findRectsandContours(self, after_preprocess, keep=-1):
-        contours= cv.findContours(after_preprocess.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        contours= cv.findContours(after_preprocess.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
         print("Length of Contours: {}".format(len(contours)))
         contours = imutils.grab_contours(contours)
         contours = sorted(contours, key=cv.contourArea, reverse=True)
+        ret = []
         if keep == -1:
             keep=len(contours)
         for c in contours[:keep]:
@@ -65,31 +66,34 @@ class FindPlate:
             if ratio < self.maxAspect and ratio > self.minAspect and len(approx) == 4:
                 cv.drawContours(self.img, [c], -1, (0, 255, 0))
                 cv.rectangle(self.img, (x, y), (x + w, y + h), (0, 255, 0))
-                return c
+                ret.append(c)
+        return ret
+
+    def preprocessCanny2(self):
+        imgBlur = cv.GaussianBlur(self.img, (19, 19), 0)
+        gray = cv.cvtColor(imgBlur, cv.COLOR_BGR2GRAY)
+        cont = cv.findContours(gray, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+        contours = imutils.grab_contours(cont)
+        contours = sorted(contours, key=cv.contourArea, reverse=True)
+
 
 # class TensorFlow:
 
 
 image = FindPlate()
 preprocessing_image = image.preprocessingCanny()
-
-rectangle = image.findRectsandContours(preprocessing_image, keep=20)
-# contours = image.extract_contours(preprocessing_image)
+# rectangles = image.findRectsandContours(preprocessing_image, keep=20)
 
 preprocessing_image = cv.cvtColor(preprocessing_image, cv.COLOR_GRAY2BGR)
 
-x, y, w, h = cv.boundingRect(rectangle)
-cv.rectangle(preprocessing_image, (x, y), (x + w, y + h), (0, 255, 0), thickness = 20)
-cv.rectangle(image.img, (x, y), (x + w, y + h), (0, 255, 0), thickness = 20)
-
-# for contour in contours:
-#     x, y, w, h = cv.boundingRect(contour)
-#     cv.rectangle(preprocessing_image, (x, y), (x + w, y + h), (0, 255, 0), thickness = 1)
-#     cv.rectangle(image.img, (x, y), (x + w, y + h), (0, 255, 0), thickness = 1)
+for rectangle in preprocessing_image:
+    x, y, w, h = cv.boundingRect(rectangle)
+    cv.rectangle(preprocessing_image, (x, y), (x + w, y + h), (0, 255, 0), thickness = 2)
+    cv.rectangle(image.img, (x, y), (x + w, y + h), (0, 255, 0), thickness = 2)
 
 
 cv.imshow("Img", image.img)
 cv.imshow("Preprocess", preprocessing_image)
 # cv.imshow("contours", cv.drawContours(contourImg, contours, -1, (0, 255, 0)))
-if cv.waitKey(15000) & 0xFF == ord('q'):
+if cv.waitKey(0) & 0xFF == ord('q'):
     exit()
