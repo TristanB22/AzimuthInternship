@@ -163,7 +163,7 @@ class FindPlate:
 
         angle = angle % 90
         
-        if not (angle < 10 or angle > 80):
+        if not (angle < 15 or angle > 75):
             return False
 
         if (height == 0 or width == 0):
