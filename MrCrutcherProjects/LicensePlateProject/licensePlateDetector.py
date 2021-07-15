@@ -14,7 +14,7 @@ class FindPlate:
     # Have to adjust so that the min and max are larger when analyzing the images and smaller when looking at the vids
     def __init__(self, checkWait = False, optimize=False, imgAddress = None, img = None):
         self.minArea = 70
-        self.maxArea = 3000
+        self.maxArea = 700
         self.maxAspect = 1
         self.minAspect = 0.1
         self.element_structure = cv.getStructuringElement(shape=cv.MORPH_RECT, ksize=(5, 5))
@@ -53,7 +53,6 @@ class FindPlate:
         rects = []
         for c in contours:
             rects.append((cv.boundingRect(c), c))
-        retContours = []
         retContourMapping = []
 
         for i in range(len(rects)):
@@ -176,9 +175,10 @@ class FindPlate:
             if key == ord('q'):
                 exit(0)
         else:
-            if cv.waitKey(25) & 0xFF == ord('q'):
+            key = cv.waitKey(10)
+            if key & 0xFF == ord('q'):
                 exit(0)
-            elif cv.waitKey(25) & 0xFF == ord('p'): # this creates a pause button for the video, in essence
+            elif key & 0xFF == ord('p'): # this creates a pause button for the video, in essence
                 while True:
                     if cv.waitKey(25) & 0xFF == ord('p'):
                         break
