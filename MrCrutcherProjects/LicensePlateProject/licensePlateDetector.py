@@ -12,15 +12,15 @@ from skimage import measure
 class FindPlate:
 
     # Have to adjust so that the min and max are larger when analyzing the images and smaller when looking at the vids
-    def __init__(self, checkWait = False, imgAddress = None, img = None):
+    def __init__(self, checkWait = False, optimize=False, imgAddress = None, img = None):
         self.minArea = 100
         self.maxArea = 7000
         self.maxAspect = 1
         self.minAspect = 0.1
         self.element_structure = cv.getStructuringElement(shape=cv.MORPH_RECT, ksize=(5, 5))
-        self.setupAndExec(checkWait = checkWait, imgAddress = imgAddress, img = img)
+        self.setupAndExec(checkWait = checkWait, optimize=optimize, imgAddress = imgAddress, img = img)
     
-    def setupAndExec(self, checkWait, imgAddress = None, img = None):
+    def setupAndExec(self, checkWait, optimize, imgAddress = None, img = None):
         if imgAddress is None and img is not None:
             self.img = img
         elif imgAddress is not None and img is None:
@@ -28,6 +28,9 @@ class FindPlate:
         else:
             print("-----------------------ERROR FINDING IMAGE-----------------------")
             exit(0)
+
+        if optimize:
+            self.img = self.img[int(self.img.shape[0]/2) : ] # Making it so that only the bottom half of the image is read (BUGGY)
         self.x = self.img.shape[1]
         self.imgCopy = self.img.copy()
         self.imgAreaRects = self.img.copy()
