@@ -11,9 +11,10 @@ from skimage import measure
 
 class FindPlate:
 
+    # Have to adjust so that the min and max are larger when analyzing the images and smaller when looking at the vids
     def __init__(self, checkWait = False, imgAddress = None, img = None):
-        self.minArea = 200
-        self.maxArea = 9000
+        self.minArea = 100
+        self.maxArea = 7000
         self.maxAspect = 1
         self.minAspect = 0.1
         self.element_structure = cv.getStructuringElement(shape=cv.MORPH_RECT, ksize=(5, 5))
