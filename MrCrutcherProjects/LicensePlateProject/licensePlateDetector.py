@@ -13,8 +13,8 @@ class FindPlate:
 
     # Have to adjust so that the min and max are larger when analyzing the images and smaller when looking at the vids
     def __init__(self, checkWait = False, optimize=False, imgAddress = None, img = None):
-        self.minArea = 100
-        self.maxArea = 7000
+        self.minArea = 70
+        self.maxArea = 3000
         self.maxAspect = 1
         self.minAspect = 0.1
         self.element_structure = cv.getStructuringElement(shape=cv.MORPH_RECT, ksize=(5, 5))
@@ -37,32 +37,10 @@ class FindPlate:
         self.Canny = None
         self.run(checkWait)
 
-    def preprocessing(self, input_img):
-        imgBlurred = cv.GaussianBlur(input_img, (5,5), 0) # n, n is the size of the window, let's see if it's okay
-        convertGray = cv.cvtColor(imgBlurred, cv.COLOR_BGR2GRAY) # grayscale conversion on a now blurred image
-        sobelx = cv.Sobel(convertGray, cv.CV_8U, 1, 0, ksize=3) # veritcle x edges
-        ret2, threshold_img = cv.threshold(sobelx, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU) #thresholding
-
-        element = self.element_structure #grabbing the structure of the element we created in __init__
-        morph_thresh = threshold_img.copy() # returning a copy of the tresholding for morphology
-        cv.morphologyEx(src=threshold_img, op=cv.MORPH_CLOSE, kernel=element, dst=morph_thresh)#Morphological output, whitespacing essentially. 
-        #The iterations for the morph control of course how much more white spacing you want, it appears 2 is "okay" 3 is better for 1 than the other. 
-
-        cv.imshow("sobelx", sobelx)
-        cv.imshow('thresh', threshold_img)
-        cv.imshow('Blur', imgBlurred)
-        return morph_thresh
-
-    def extracted_contours(self, after_preprocess):
-        contours, _ = cv.findContours(after_preprocess, mode=cv.RETR_EXTERNAL, method=cv.CHAIN_APPROX_NONE) 
-        cv.imshow('conts', after_preprocess) #show contours
-        contours = imutils.grab_contours(contours)
-        return contours
-
-    def preprocessCannyandContours(self, keep = -1):
+    def preprocessCannyandContours(self):
         gray = cv.cvtColor(self.img, cv.COLOR_BGR2GRAY)
-        gray = cv.GaussianBlur(gray, (5, 5), 0)
-        edged = cv.Canny(gray, 75, 200)
+        gray = cv.GaussianBlur(gray, (3, 3), 0)
+        edged = cv.Canny(gray, 75, 160)
         self.Canny = edged
         contours = cv.findContours(edged.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
         contours = imutils.grab_contours(contours)
@@ -132,10 +110,10 @@ class FindPlate:
         box = cv.boxPoints(rect)
         box = np.int0(box)
         if self.validateRatio(rect, contour):
-            cv.drawContours(self.imgAreaRects,[box], 0, (0, 255, 0), 2)
+            cv.drawContours(self.imgAreaRects,[box], 0, (0, 255, 0), 1)
             return rect, True
         else:
-            cv.drawContours(self.imgAreaRects,[box], 0, (0, 0, 255), 2)
+            cv.drawContours(self.imgAreaRects,[box], 0, (0, 0, 255), 1)
             return rect, False
         
     def preRatCheck(self, area, width, height):
@@ -163,7 +141,7 @@ class FindPlate:
 
         angle = angle % 90
         
-        if not (angle < 15 or angle > 75):
+        if not (angle < 10 or angle > 80):
             return False
 
         if (height == 0 or width == 0):
@@ -200,6 +178,10 @@ class FindPlate:
         else:
             if cv.waitKey(25) & 0xFF == ord('q'):
                 exit(0)
+            elif cv.waitKey(25) & 0xFF == ord('p'): # this creates a pause button for the video, in essence
+                while True:
+                    if cv.waitKey(25) & 0xFF == ord('p'):
+                        break
 
 if __name__ == "__main__":
 
@@ -211,12 +193,13 @@ if __name__ == "__main__":
         "/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcherProjects/LicensePlateProject/licensePlate5.jpeg",
     ]
 
-    print("\n\nWelcome\nPlease press q to quit the program\nPlease press anything else to continue through the images")
+    print("\n\nWelcome\nPlease press q to quit the program\nPlease press p to pause and unpause during the video\nPlease press anything else to continue through the images")
     print("\nOnce you have looked at all of the still images, the video will begin\n\n")
     print("Green boxes signify possible license plate regions \nwhile red ones show other ROI's which were picked up and discarded")
 
-    for image in imageAddresses:
-        imageToProcess = FindPlate(checkWait = True, imgAddress = image)
+# Uncomment the lines below to see the still image recognitions
+    # for image in imageAddresses:
+    #     imageToProcess = FindPlate(checkWait = True, imgAddress = image)
     
     cap = cv.VideoCapture('/Users/tristanbrigham/Downloads/NewYorkVid.mp4')
     print("Starting Video")
