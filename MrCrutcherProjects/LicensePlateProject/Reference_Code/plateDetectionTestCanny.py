@@ -266,7 +266,7 @@ if __name__ == "__main__":
 	plateFinder = FindPlate()
 	#model = NN()
 
-	cap = cv.VideoCapture('/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcherProjects/LicensePlateProject/NewYorkVid.mp4')
+	cap = cv.VideoCapture('/Users/tristanbrigham/Downloads/NewYorkVid.mp4')
 	while(cap.isOpened()):
 		ret, img = cap.read()
 		y = img.shape[0]

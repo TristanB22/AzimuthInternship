@@ -175,7 +175,7 @@ class FindPlate:
 			if plateFinder:
 				chars_on_plate = self.find_chars(after_clean_plate_img)
 				if (chars_on_plate is not None and len(chars_on_plate) == 0): #if chars exist period return the check
-					x, y1, w1, h1 == coordinates
+					x1, y1, w1, h1 = coordinates
 					coordinates = x1 + x, y1 + y
 					after_check = after_clean_plate_img
 					return after_check, chars_on_plate, coordinates
@@ -208,8 +208,8 @@ class FindPlate:
 	
 	#Setup to check the sizing of the contours
 	def ratioCheck(self, area, width, height):
-		min = self.min_area
-		max = self.max_area
+		minVal = self.min_area
+		maxVal = self.max_area
 
 		ratioMin = 3
 		ratioMax = 6
@@ -218,13 +218,13 @@ class FindPlate:
 		if ratio < 1:
 			ratio = 1/ ratio
 
-		if (area < min or area > max) or (ratio < ratioMin or ratio > ratioMax):
+		if (area < minVal or area > maxVal) or (ratio < ratioMin or ratio > ratioMax):
 			return False
 		return True
 
 	def preRatCheck(self, area, width, height):
-		min = self.min_area
-		max = self.max_area
+		minVal = self.min_area
+		maxVal = self.max_area
 
 		ratioMin = 2.5
 		ratioMax = 7
@@ -233,7 +233,7 @@ class FindPlate:
 		if ratio < 1:
 			ratio = 1/ ratio
 		
-		if (area < min or area > max) or (ratio < ratioMin or ratio > ratioMax):
+		if (area < minVal or area > maxVal) or (ratio < ratioMin or ratio > ratioMax):
 			return False
 		return True
 
@@ -273,7 +273,7 @@ if __name__ == "__main__":
 	plateFinder = FindPlate()
 	#model = NN()
 
-	cap = cv.VideoCapture('CarTest3.mp4')
+	cap = cv.VideoCapture('/Users/tristanbrigham/Downloads/NewYorkVid.mp4')
 	while(cap.isOpened()):
 		ret, img = cap.read()
 		img = imutils.resize(img, width=640)
