@@ -12,8 +12,8 @@ from skimage import measure
 class FindPlate:
 
     def __init__(self, checkWait = False, imgAddress = None, img = None):
-        self.minArea = 50
-        self.maxArea = 3000
+        self.minArea = 200
+        self.maxArea = 9000
         self.maxAspect = 1
         self.minAspect = 0.1
         self.element_structure = cv.getStructuringElement(shape=cv.MORPH_RECT, ksize=(5, 5))
@@ -159,7 +159,7 @@ class FindPlate:
 
         angle = angle % 90
         
-        if not (angle < 1 or angle > 80):
+        if not (angle < 10 or angle > 80):
             return False
 
         if (height == 0 or width == 0):
@@ -177,12 +177,13 @@ class FindPlate:
         self.drawContours(contours) 
         self.showImages(checkWait)
 
-    def showImages(self, checkWait):
-        cv.imshow("Original", imutils.resize(self.img, height = 300))
-        cv.imshow("Contours", imutils.resize(self.imgCopy, height = 300))
-        cv.imshow("Bounding Rects", imutils.resize(self.imgAreaRects, height = 300))
-        cv.imshow("Canny", imutils.resize(self.Canny, height = 300))
+    def showImages(self, checkWait, height = 300):
+        cv.imshow("Original", imutils.resize(self.img, height = height))
+        cv.imshow("Contours", imutils.resize(self.imgCopy, height = height))
+        cv.imshow("Bounding Rects", imutils.resize(self.imgAreaRects, height = height * 3))
+        cv.imshow("Canny", imutils.resize(self.Canny, height = height))
 
+        #comment out the 3 lines below if you would like for the windows to be able to move
         cv.moveWindow("Contours", 530, -100)
         cv.moveWindow("Bounding Rects", 530, 285)
         cv.moveWindow("Canny", 0, 285)
@@ -206,10 +207,12 @@ if __name__ == "__main__":
         "/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcherProjects/LicensePlateProject/licensePlate5.jpeg",
     ]
 
-    print("\n\nWelcome\nPlease press p to continue through the images\nPlease press q to quit the program")
+    print("\n\nWelcome\nPlease press q to quit the program\nPlease press anything else to continue through the images")
+    print("\nOnce you have looked at all of the still images, the video will begin\n\n")
+    print("Green boxes signify possible license plate regions \nwhile red ones show other ROI's which were picked up and discarded")
 
-    # for image in imageAddresses:
-    #     imageToProcess = FindPlate(checkWait = True, imgAddress = image)
+    for image in imageAddresses:
+        imageToProcess = FindPlate(checkWait = True, imgAddress = image)
     
     cap = cv.VideoCapture('/Users/tristanbrigham/Downloads/NewYorkVid.mp4')
     print("Starting Video")
