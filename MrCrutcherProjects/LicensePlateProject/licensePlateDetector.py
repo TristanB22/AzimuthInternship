@@ -12,13 +12,18 @@ from skimage import measure
 class FindPlate:
 
     # Have to adjust so that the min and max are larger when analyzing the images and smaller when looking at the vids
-    def __init__(self, checkWait = False, optimize=False, imgAddress = None, img = None):
-        self.minArea = 70
-        self.maxArea = 700
-        self.maxAspect = 1
-        self.minAspect = 0.1
-        self.element_structure = cv.getStructuringElement(shape=cv.MORPH_RECT, ksize=(5, 5))
-        self.setupAndExec(checkWait = checkWait, optimize=optimize, imgAddress = imgAddress, img = img)
+    def __init__(self, checkWait = False, optimize=True, imgAddress = None, img = None):
+        self.divideArea = 3 #This is the denominator for how much of the screen is analyzed (analyzes the [1/(variable)] portion of the image/vid)
+                            #For example, if the bottom half should be analyzed, put in '2' 
+
+        self.minArea = 70   #minimum area of the bounding boxes
+        self.maxArea = 700  #max area of the bounding boxes
+        self.maxAspect = 1  #the max amount of area that the license plate can cover within a bounding box to be considered
+        self.minAspect = 0.1#the minimum amount of area that a license plate can cover within a bounding box to be considered
+        self.offset = 0     #initializing the variable which keeps track of how far from the top of the image the program begins to analyze
+        self.topImg = None  #initializing the variable which may hold the top part of the image for later
+        self.element_structure = cv.getStructuringElement(shape=cv.MORPH_RECT, ksize=(5, 5)) #basic elem structure for blurring
+        self.setupAndExec(checkWait = checkWait, optimize=optimize, imgAddress = imgAddress, img = img) #execute the program
     
     def setupAndExec(self, checkWait, optimize, imgAddress = None, img = None):
         if imgAddress is None and img is not None:
@@ -30,12 +35,23 @@ class FindPlate:
             exit(0)
 
         if optimize:
-            self.img = self.img[int(self.img.shape[0]/2) : ] # Making it so that only the bottom half of the image is read (BUGGY)
+            self.offset = int(self.img.shape[0] * (self.divideArea - 1) / self.divideArea) 
+            self.topImg = self.img[ : self.offset ]
+            self.img = self.img[self.offset : ] # Making it so that only the bottom half of the image is read (BUGGY)
+            print("OFFSET: {}".format(self.offset))
+        
+        cv.imshow("original cut", self.img)
         self.x = self.img.shape[1]
+
         self.imgCopy = self.img.copy()
         self.imgAreaRects = self.img.copy()
         self.Canny = None
-        self.run(checkWait)
+        self.run()
+
+        if optimize:
+            self.img = np.append(self.topImg, self.img, axis=0)
+            self.imgAreaRects = np.append(self.topImg, self.imgAreaRects, axis=0)
+        self.showImages(checkWait)
 
     def preprocessCannyandContours(self):
         gray = cv.cvtColor(self.img, cv.COLOR_BGR2GRAY)
@@ -150,13 +166,12 @@ class FindPlate:
 
 
 
-    def run(self, checkWait):
+    def run(self):
         contours = self.contourManipulation(self.preprocessCannyandContours())
 
         # preprocessedImage = self.preprocessing(self.img)
         # contours = self.contourManipulation(preprocessedImage)
         self.drawContours(contours) 
-        self.showImages(checkWait)
 
     def showImages(self, checkWait, height = 300):
         cv.imshow("Original", imutils.resize(self.img, height = height))
