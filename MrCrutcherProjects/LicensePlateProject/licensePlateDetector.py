@@ -28,19 +28,23 @@ class FindPlate:
         self.angle_min = 83      #After the angle of the cv.areaMinRect has a modulo 90 applied to it, the angle either needs to be close to upright (this value or above)
         self.angle_max = 7      # or close to horizontal (this value or below) in degrees
 
-        self.area_min = 100       #minimum area of the accepted bounding boxes -- it recognizes plates with smaller values but there is no way that characters can be picked out. No use to have smaller
+        self.area_min = 50       #minimum area of the accepted bounding boxes -- it recognizes plates with smaller values but there is no way that characters can be picked out. No use to have smaller
         self.area_max = 350      #max area of the accepted bounding boxes
 
         self.lower_canny = 90    #upper value for canny thresholding
-        self.upper_canny = 120   #Lower value for canny thresholding
+        self.upper_canny = 140   #Lower value for canny thresholding
 
         #ASPECT variables are not used:
         self.aspect_max = 1      #the max amount of area that the license plate can cover within a bounding box to be considered
         self.aspect_min = 0.3    #the minimum amount of area that a license plate can cover within a bounding box to be considered
 
+        self.blur = (11, 11)    #initializing the size component of the gaussian blur that is applied to the image
         self.offset = 0         #initializing the variable which keeps track of how far from the top of the image the program begins to analyze
-        self.top_img = None      #initializing the variable which may hold the top part of the image for later
+        self.top_img = None     #initializing the variable which may hold the top part of the image for later
         self.element_structure = cv.getStructuringElement(shape=cv.MORPH_RECT, ksize=(5, 5)) #basic elem structure for blurring
+
+        self.roiArray = []      #array for holding the ROI's
+
         self.setupAndExec(checkWait = checkWait, optimize=optimize, imgAddress = imgAddress, img = img) #execute the program
     
     def setupAndExec(self, checkWait, optimize, imgAddress = None, img = None):
@@ -71,7 +75,7 @@ class FindPlate:
 
     def preprocessCannyandContours(self):
         gray = cv.cvtColor(self.img, cv.COLOR_BGR2GRAY) #get grayscale image
-        gray = cv.GaussianBlur(gray, (3, 3), 0)         #Apply a blur
+        gray = cv.GaussianBlur(gray, self.blur, 0)         #Apply a blur
         edged = cv.Canny(gray, self.lower_canny, self.upper_canny)  #Getting the canny contours
         self.Canny = edged                              #assign the variable
         contours = cv.findContours(edged.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)    #Get the contours of the Canny image [remember that this will return more contours than we need
@@ -112,10 +116,10 @@ class FindPlate:
         #     c = contours[key]
         
         for c in contours:
-            boolRect = self.checkMinRect(c)
+            boundingRectangle, boolRect = self.checkMinRect(c)
 
             if boolRect:
-                ret.append(c)
+                ret.append(boundingRectangle)
             
             if checkIndividual:                         #if the check individual option is on, then go through the contours one-by-one, write them to the image, and show the image
                 print("\n\nCONTOUR: {}".format(cv.contourArea(c)))
@@ -138,12 +142,14 @@ class FindPlate:
         rect = cv.minAreaRect(contour)                  #get the min area rect
         box = cv.boxPoints(rect)                       
         box = np.int0(box)                              #for drawing the min area rectangles
-        if self.validateRatio(rect, contour):
+        brect= cv.boundingRect(contour)
+        _, _, rw, rh = brect
+        if self.validateRatio(rect, rw, rh):
             cv.drawContours(self.imgAreaRects,[box], 0, (0, 255, 0), 1)
-            return True                                 #if everything is right, then return the contour and true to show that it is valid
+            return brect, True                                 #if everything is right, then return the contour and true to show that it is valid
         else:
             # cv.drawContours(self.imgAreaRects,[box], 0, (0, 0, 255), 1)
-            return False                          #else, return the contour and false
+            return None, False                          #else, return the contour and false
 
 
 
@@ -155,7 +161,7 @@ class FindPlate:
         return not (ratio < self.ratio_min or ratio > self.ratio_max) #if the area is not in range or the ratio is off, return false
 
 
-    def validateRatio(self, rect, c):                   #more checking that the contour could be a license-plate
+    def validateRatio(self, rect, rw, rh):                   #more checking that the contour could be a license-plate
         (x, y), (width, height), angle = rect           #get all of the data about the minarea bounding rectangle
         if width == 0 or height == 0:
             return False
@@ -166,7 +172,6 @@ class FindPlate:
         if not ((angle < self.angle_max or angle > self.angle_min) and (area > self.area_min and area < self.area_max)):
             return False
 
-        rx, ry, rw, rh = cv.boundingRect(c)
         if rw < rh:
             return False
 
@@ -179,12 +184,18 @@ class FindPlate:
         cv.imshow("Canny", np.zeros((10, 3)))
 
         #comment out the 3 lines below if you would like for the windows to be able to move
-        cv.moveWindow("Contours", 530, -100)
-        cv.moveWindow("Bounding Rects", 530, 285)
-        cv.moveWindow("Canny", 530, 100)
+        # cv.moveWindow("Contours", 530, -100)
+        # cv.moveWindow("Bounding Rects", 530, 285)
+        # cv.moveWindow("Canny", 530, 100)
 
     def run(self):                                      #master run function for the program
-        contours = self.contourManipulation(self.preprocessCannyandContours())
+        boundingRectangles = self.contourManipulation(self.preprocessCannyandContours())
+        ###FIX THIS:::
+        # for count, brect in enumerate(boundingRectangles):
+        #     x, y, w, h = brect
+        #     if h > 0 and w > 0:
+        #         img = self.img[x : x + w, y + self.offset : y + self.offset + h]
+        #         cv.imshow("ROI {}".format(count), img)
 
     def showImages(self, checkWait, height = 300):      #showing the images and putting them in the right place on the screen
 
