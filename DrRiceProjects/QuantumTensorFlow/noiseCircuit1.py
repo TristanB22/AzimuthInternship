@@ -16,9 +16,7 @@ class BitAndPhaseFlipChannel(cirq.SingleQubitGate):
     def _circuit_diagram_info_(self, args) -> str:
         return f"BitAndPhaseFlip({self._p})"
 
-bit_phase_flip = BitAndPhaseFlipChannel(p=0.05)
-
-def noisyCircuit(measure=True, depolarize=True, bitPhase=True, bitEnd = True):
+def noisyCircuit(probability = 0.1, measure=True, depolarize=True, bitPhase=True, bitEnd = True):
     qreg = cirq.LineQubit.range(4)
     depInd = 1
     bitPhaseFlipInd = 2
@@ -34,22 +32,30 @@ def noisyCircuit(measure=True, depolarize=True, bitPhase=True, bitEnd = True):
     if depolarize:
         measureInd += 1
         bitPhaseFlipInd +=  1
-        circ.insert(depInd,  cirq.depolarize(p=0.01).on_each(qreg))
+        circ.insert(depInd,  cirq.depolarize(p=probability).on_each(qreg))
 
     if bitPhase:
         measureInd += 1
-        circ.insert(bitPhaseFlipInd,  bit_phase_flip.on_each(qreg[1::2]))
+        circ.insert(bitPhaseFlipInd,  BitAndPhaseFlipChannel(p=probability).on_each(qreg[1::2]))
 
     if measure:
         circ.insert(measureInd, cirq.measure(*qreg))
 
     if bitEnd:
-       circ.append(cirq.bit_flip(p=0.07).controlled(1).on(*qreg[2:]))
+       circ.append(cirq.bit_flip(p=probability).controlled(1).on(*qreg[2:]))
 
 
 
     print("Circuit with multiple channels:\n")
     print(circ)
+    return circ
 
 
-noisyCircuit()
+circuit = noisyCircuit(probability=0.5)
+
+sim = cirq.Simulator()
+
+for i in range(100):    
+    result = sim.simulate(circuit, initial_state=0b0100)
+    print(result)
+
