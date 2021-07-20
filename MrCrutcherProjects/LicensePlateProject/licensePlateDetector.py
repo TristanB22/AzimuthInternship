@@ -12,7 +12,8 @@ print("Loaded IMUTILS")
 print("Loaded THRESHOLD")
 # from skimage import measure
 print("Loaded MEASURE")
-# import pytesseract
+import pytesseract
+print("Loaded PYTESSERACT")
 
 
 class FindPlate:
@@ -111,15 +112,16 @@ class FindPlate:
         # keys = self.sortContours(contours)            #This is not currently being used -- it would only be used if we wanted to optimize by looking at the 
         checkIndividual = False                         #contours which are in the middle of the screen x-wise. It can also be changed to look at contours close to 
         ret = []                                        #a certain y-val
+        self.roiArray = []
 
         # for key in keys:
         #     c = contours[key]
         
         for c in contours:
-            boundingRectangle, boolRect = self.checkMinRect(c)
+            boolRect = self.checkMinRect(c)
 
             if boolRect:
-                ret.append(boundingRectangle)
+                ret.append(c)
             
             if checkIndividual:                         #if the check individual option is on, then go through the contours one-by-one, write them to the image, and show the image
                 print("\n\nCONTOUR: {}".format(cv.contourArea(c)))
@@ -142,14 +144,15 @@ class FindPlate:
         rect = cv.minAreaRect(contour)                  #get the min area rect
         box = cv.boxPoints(rect)                       
         box = np.int0(box)                              #for drawing the min area rectangles
-        brect= cv.boundingRect(contour)
-        _, _, rw, rh = brect
+        rx, ry, rw, rh = cv.boundingRect(contour)
         if self.validateRatio(rect, rw, rh):
             cv.drawContours(self.imgAreaRects,[box], 0, (0, 255, 0), 1)
-            return brect, True                                 #if everything is right, then return the contour and true to show that it is valid
+            brect = self.img[ry : ry + rh, rx : rx + rw]
+            self.roiArray.append(brect)
+            return True                                 #if everything is right, then return the contour and true to show that it is valid
         else:
             # cv.drawContours(self.imgAreaRects,[box], 0, (0, 0, 255), 1)
-            return None, False                          #else, return the contour and false
+            return False                          #else, return the contour and false
 
 
 
@@ -189,13 +192,14 @@ class FindPlate:
         # cv.moveWindow("Canny", 530, 100)
 
     def run(self):                                      #master run function for the program
-        boundingRectangles = self.contourManipulation(self.preprocessCannyandContours())
-        ###FIX THIS:::
-        # for count, brect in enumerate(boundingRectangles):
-        #     x, y, w, h = brect
-        #     if h > 0 and w > 0:
-        #         img = self.img[x : x + w, y + self.offset : y + self.offset + h]
-        #         cv.imshow("ROI {}".format(count), img)
+        contours = self.contourManipulation(self.preprocessCannyandContours())
+
+        #SHOWING THE ROI's
+        for count, regionOfInterest in enumerate(self.roiArray):
+            name = "ROI {}".format(count)                           #format the name
+            cv.imshow(name, imutils.resize(regionOfInterest, height=100))   #showing and resizing image
+            cv.moveWindow(name, 0, 110 * count - 50)                #Moving the ROI windows into the right spot on the screen
+            # print(pytesseract.image_to_string(regionOfInterest))    #printing that is on the images using pytesseract
 
     def showImages(self, checkWait, height = 300):      #showing the images and putting them in the right place on the screen
 
