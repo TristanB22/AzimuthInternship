@@ -26,7 +26,7 @@ def noisyCircuit(probability = 0.1, measure=True, depolarize=True, bitPhase=True
         cirq.H.on_each(qreg),
         cirq.qft(*qreg),
         cirq.qft(*qreg, inverse=True),
-        cirq.reset(qreg[1]),
+        # cirq.reset(qreg[1]),
     )
 
     if depolarize:
@@ -51,11 +51,11 @@ def noisyCircuit(probability = 0.1, measure=True, depolarize=True, bitPhase=True
     return circ
 
 
-circuit = noisyCircuit(probability=0.5)
+circuit = noisyCircuit(probability=0) # 0, 0.01, 0.1, 0.2, 0.3
 
 sim = cirq.Simulator()
 
 for i in range(100):    
     result = sim.simulate(circuit, initial_state=0b0100)
-    print(result)
+    # print(result)
 
