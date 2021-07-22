@@ -83,15 +83,6 @@ class FindPlate:
     def run(self):                                      #master run function for the program
         _ = self.contour_manipulation(self.preprocess_canny_contours())
 
-        #SHOWING THE ROI's
-        for count, regionOfInterest in enumerate(self.roi_array):
-            name = "ROI {}".format(count)                           #format the name
-            regionOfInterest = cv.cvtColor(regionOfInterest, cv.COLOR_BGR2GRAY)
-            cv.imshow(name, imutils.resize(regionOfInterest, height=100))   #showing and resizing image
-            cv.moveWindow(name, 0, 110 * count - 50)                #Moving the ROI windows into the right spot on the screen
-            # print(pytesseract.image_to_string(regionOfInterest))    #printing that is on the images using pytesseract
-            self.check_keys()                                       #kind of inefficient to be checking the keys every time, but otherwise the program is unresponsive
-
 
 
     def preprocess_canny_contours(self):
@@ -232,6 +223,15 @@ class FindPlate:
         cv.imshow("Contours", imutils.resize(self.img_copy, height = height))
         cv.imshow("Bounding Rects", imutils.resize(self.img_rects, height = height * 4))
         cv.imshow("Canny", imutils.resize(self.Canny, height = height))
+
+        #SHOWING THE ROI's
+        for count, regionOfInterest in enumerate(self.roi_array):
+            name = "ROI {}".format(count)                           #format the name
+            regionOfInterest = cv.cvtColor(regionOfInterest, cv.COLOR_BGR2GRAY)
+            cv.imshow(name, imutils.resize(regionOfInterest, height=100, inter=cv.INTER_CUBIC))   #showing and resizing image
+            cv.moveWindow(name, 0, 110 * count - 50)                #Moving the ROI windows into the right spot on the screen
+            # print(pytesseract.image_to_string(regionOfInterest))    #printing that is on the images using pytesseract
+            self.check_keys()                                       #kind of inefficient to be checking the keys every time, but otherwise the program is unresponsive
 
 
 

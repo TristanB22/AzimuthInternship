@@ -67,7 +67,7 @@ def noisyCircuit(probability = 0.1, measure=True, bitStart = False, depolarize=F
 
 
 probabilities = [0, 0.01, 0.1, 0.2, 0.3, 0.5]
-iterations = 10000
+iterations = 100
 keys_measure = ["m0", "m1", "m2", "m3"]
 configurations = [(True, False, False, False, False), (True, True, False, False, False), (True, False, True, False, False), (True, False, False, True, False)]
 # measure, bitstart, depolarize, bitphase, cbitflip
