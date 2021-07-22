@@ -36,6 +36,8 @@ class FindPlate:
             print("-----------------------ERROR FINDING IMAGE-----------------------")
             exit(0)
 
+        imutils.resize(self.img, height = 300, inter=cv.INTER_CUBIC)
+
         if(counter == 0):
             self.setup_exec(optimize=optimize) #execute the program
         else:
@@ -104,7 +106,6 @@ class FindPlate:
     def preprocess_canny_contours(self):
         gray = cv.cvtColor(self.img, cv.COLOR_BGR2GRAY) #get grayscale image
         gray = cv.GaussianBlur(gray, self.blur, 0)         #Apply a blur
-        cv.imshow("gray", gray)
         edged = cv.Canny(gray, self.lower_canny, self.upper_canny)  #Getting the canny contours
         self.Canny = edged                              #assign the variable
         contours = cv.findContours(edged.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)    #Get the contours of the Canny image [remember that this will return more contours than we need
@@ -112,22 +113,19 @@ class FindPlate:
         contours = imutils.grab_contours(contours)      #Get the contours using imutils
         
         cv.drawContours(self.img_copy, contours, -1, (0, 0, 255), thickness=2)   #Draw the contours onto the copied image
-        cv.imshow("Contours", self.img_copy)             #show image
         return contours
 
 
 
-    def process_ROI(self, roi):
-        # imgray = cv.cvtColor(roi, cv.COLOR_BGR2GRAY)
+    def process_ROI(self, roi, counter):
         imgray = cv.bitwise_not(roi)
         imgray = cv.dilate(imgray, (3, 3), iterations = 2)
-        thresh = cv.threshold(imgray, 0, 127, cv.THRESH_BINARY+cv.THRESH_OTSU)
-        # imgray = cv.Canny(imgray, 250, 254)
-        contours, _ = cv.findContours(imgray, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        ret, thresh = cv.threshold(imgray, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
+        contours, _ = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         contours = sorted(contours, key=cv.contourArea, reverse=True)
-        cv.imshow("GRAY", imutils.resize(imgray, height=200))
+        cv.imshow("GRAY {}".format(counter), imutils.resize(thresh, height=200))
         for count, contour in enumerate(contours[ : self.amt_digits]):
-            # print("COUNT: {}".format(count))
+            print("COUNT: {}".format(count))
             x, y, w, h = cv.boundingRect(contour)
             regionOfInterest = roi[y : y + h, x : x + w]
             cv.imshow("Letter {}".format(count), imutils.resize(regionOfInterest, height = 100))
@@ -238,26 +236,13 @@ class FindPlate:
 
 
 
-    def init_images(self): #putting the images in the right places on the screen so that they do not all stack up on run -- NOT BEING USED RIGHT NOW
-        cv.imshow("Original", np.zeros((10, 3)))
-        cv.imshow("Contours", np.zeros((10, 3)))
-        cv.imshow("Bounding Rects", np.zeros((10, 3)))
-        cv.imshow("Canny", np.zeros((10, 3)))
-
-        #comment out the 3 lines below if you would like for the windows to be able to move
-        # cv.moveWindow("Contours", 530, -100)
-        # cv.moveWindow("Bounding Rects", 530, 285)
-        # cv.moveWindow("Canny", 530, 100)
-
-
-
     def show_images(self, height = 300):      #showing the images and putting them in the right place on the screen
-        cv.imshow("Original", imutils.resize(self.img, height = height))
+        cv.imshow("Original", self.img)
         self.check_keys()                                           #kind of inefficient to be checking the keys every time, but otherwise the program is unresponsive
 
 
     def show_images_exec(self, height = 300):
-        cv.imshow("Contours", imutils.resize(self.img_copy, height = height))
+        # cv.imshow("Contours", imutils.resize(self.img_copy, height = height))
         cv.imshow("Bounding Rects", imutils.resize(self.img_rects, height = height * 4))
         cv.imshow("Canny", imutils.resize(self.Canny, height = height))
 
@@ -265,10 +250,10 @@ class FindPlate:
         for count, regionOfInterest in enumerate(self.roi_array):
             name = "ROI {}".format(count)                           #format the name
             regionOfInterest = cv.cvtColor(regionOfInterest, cv.COLOR_BGR2GRAY)
-            cv.imshow(name, imutils.resize(regionOfInterest, height=100, inter=cv.INTER_CUBIC))   #showing and resizing image
+            cv.imshow(name, imutils.resize(regionOfInterest, height=100))   #showing and resizing image
             cv.moveWindow(name, 0, 110 * count - 50)                #Moving the ROI windows into the right spot on the screen
             # print(pytesseract.image_to_string(regionOfInterest))    #printing that is on the images using pytesseract
-            self.process_ROI(regionOfInterest)
+            self.process_ROI(regionOfInterest, count)
         
         self.show_images()
         
