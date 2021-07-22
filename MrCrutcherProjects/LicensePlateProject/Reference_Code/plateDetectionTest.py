@@ -56,7 +56,7 @@ def segment_chars(plate_img, fixed_width):
 	#loop over the unique compontnets 
 	chars = []
 	for label in np.unique(labels):
-		if label ==0:
+		if label == 0:
 			continue #ignore background label 
 		#otherwise find contours in the label mask
 		labelM = np.zeros(thresh.shape, dtype='uint8')
@@ -90,7 +90,7 @@ def segment_chars(plate_img, fixed_width):
 				hull = cv.convexHull(c)
 				cv.drawContours(charCands, [hull], -1, 255, -1)
 				
-	cv.imshow('"PlatArea"', plate_img)
+	cv.imshow('"PlateArea"', plate_img)
 	#back outside the for loop
 	contours, hierachy = cv.findContours(charCands, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE) #define the contour, we now have a hierachy 
 	if contours: #if there is a contour
@@ -111,7 +111,7 @@ def segment_chars(plate_img, fixed_width):
 			chars.append(temp)
 		return chars
 	else:
-		return None
+		return None 
 ########################################################
 ########################################################
 
@@ -273,7 +273,7 @@ if __name__ == "__main__":
 	plateFinder = FindPlate()
 	#model = NN()
 
-	cap = cv.VideoCapture('/Users/tristanbrigham/Downloads/NewYorkVid.mp4')
+	cap = cv.VideoCapture('/Users/tristanbrigham/Downloads/BostonVid.mp4')
 	while(cap.isOpened()):
 		ret, img = cap.read()
 		img = imutils.resize(img, width=640)

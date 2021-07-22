@@ -12,30 +12,77 @@ print("Loaded IMUTILS")
 print("Loaded THRESHOLD")
 # from skimage import measure
 print("Loaded MEASURE")
-import pytesseract
-print("Loaded PYTESSERACT")
+# import pytesseract
+# print("Loaded PYTESSERACT")
+from skimage.filters import threshold_local
+from skimage import measure
+print("IMPORTED SKIMAGE")
 
+
+### Class for plate detection
 
 class FindPlate:
-
+    #should maybe make the parameters global variables or controlled by the command line
     # Have to adjust so that the min and max are larger when analyzing the images and smaller when looking at the vids
-    def __init__(self, check_wait = False, optimize=True, imgAddress = None, img = None):
-        self.divideArea = 2.5 #This is the denominator for how much of the screen is analyzed (analyzes the [1/(variable)] portion of the image/vid)
-                            #For example, if the bottom half should be analyzed, put in '2' 
+    def __init__(self, counter, check_wait = False, optimize=True, imgAddress = None, img = None):
 
-        self.ratio_max = 3       #This is the maximum width to height ratio that a license plate can be in the program (for the US, about 4 is good while for EU plates, about 6-7 is good)
+        self.check_wait = check_wait    #initializing whether we need to wait between drawing contours for debugging
+
+        if imgAddress is None and img is not None:  #getting the image from the video
+            self.img = img
+        elif imgAddress is not None and img is None:
+            self.img = cv.resize(cv.imread(imgAddress), (860, 480))
+        else:
+            print("-----------------------ERROR FINDING IMAGE-----------------------")
+            exit(0)
+
+        if(counter == 0):
+            self.setup_exec(optimize=optimize) #execute the program
+        else:
+            self.show_images()                          #Show the images
+    
+
+    def setup_exec(self, optimize):
+
+        self.settings_init()
+
+        if optimize:        #Currently, optimize makes it so that only the bottom portion of the screen is analyzed
+            self.offset = int(self.img.shape[0] * (self.divideArea - 1) / self.divideArea)  #How many pixels in the y direction are not analyzed from the top
+            self.top_img = self.img[ : self.offset ]    #Taking the top potion of the image and saving it for later
+            self.img = self.img[self.offset : ]         #reassigning the image to the portion being analyed
+        
+        self.x = self.img.shape[1]                      #getting the width of the image
+
+        self.img_copy = self.img.copy()                 #getting copies for analysis
+        self.img_rects = self.img.copy()                #the copy that will be used for bounding rectangles
+        self.Canny = None                               #Initializing variable to hold Canny image
+        self.run()
+
+        if optimize:                                    #After being run, rejoin the images if optimize is on
+            self.img = np.append(self.top_img, self.img, axis=0)
+            self.img_rects = np.append(self.top_img, self.img_rects, axis=0)
+        
+        self.show_images_exec()
+
+
+
+    def settings_init(self):
+        self.divideArea = 2.5   #This is the denominator for how much of the screen is analyzed (analyzes the [1/(variable)] portion of the image/vid)
+                                #For example, if the bottom half should be analyzed, put in '2' 
+
+        self.amt_digits = 6     #defining the amount of characters and digits that should be found on the license plate 
+
+        self.ratio_max = 3      #This is the maximum width to height ratio that a license plate can be in the program (for the US, about 4 is good while for EU plates, about 6-7 is good)
         self.ratio_min = 2      #This is the minimum width to height ratio 
 
-        self.angle_min = 83      #After the angle of the cv.areaMinRect has a modulo 90 applied to it, the angle either needs to be close to upright (this value or above)
+        self.angle_min = 83     #After the angle of the cv.areaMinRect has a modulo 90 applied to it, the angle either needs to be close to upright (this value or above)
         self.angle_max = 7      # or close to horizontal (this value or below) in degrees
 
-        self.area_min = 80       #minimum area of the accepted bounding boxes -- it recognizes plates with smaller values but there is no way that characters can be picked out. No use to have smaller
+        self.area_min = 130      #minimum area of the accepted bounding boxes -- it recognizes plates with smaller values but there is no way that characters can be picked out. No use to have smaller
         self.area_max = 350      #max area of the accepted bounding boxes
 
         self.lower_canny = 90    #upper value for canny thresholding
         self.upper_canny = 130   #Lower value for canny thresholding
-
-        self.check_wait = check_wait #true if the program should pause after every contour is drawn
 
         #ASPECT variables are not used:
         self.aspect_max = 1      #the max amount of area that the license plate can cover within a bounding box to be considered
@@ -48,37 +95,6 @@ class FindPlate:
 
         self.roi_array = []      #array for holding the ROI's
 
-        self.setup_exec(optimize=optimize, imgAddress = imgAddress, img = img) #execute the program
-    
-
-
-    def setup_exec(self, optimize, imgAddress = None, img = None):
-        if imgAddress is None and img is not None:
-            self.img = img
-        elif imgAddress is not None and img is None:
-            self.img = cv.resize(cv.imread(imgAddress), (860, 480))
-        else:
-            print("-----------------------ERROR FINDING IMAGE-----------------------")
-            exit(0)
-
-        if optimize:        #Currently, optimize makes it so that only the bottom portion of the screen is analyzed
-            self.offset = int(self.img.shape[0] * (self.divideArea - 1) / self.divideArea)  #How many pixels in the y direction are not analyzed from the top
-            self.top_img = self.img[ : self.offset ]    #Taking the top potion of the image and saving it for later
-            self.img = self.img[self.offset : ]         #reassigning the image to the portion being analyed
-        
-        self.x = self.img.shape[1]                      #getting the width of the image
-
-        self.img_copy = self.img.copy()                  #getting copies for analysis
-        self.img_rects = self.img.copy()             #the copy that will be used for bounding rectangles
-        self.Canny = None                               #Initializing variable to hold Canny image
-        self.run()
-
-        if optimize:                                    #After being run, rejoin the images if optimize is on
-            self.img = np.append(self.top_img, self.img, axis=0)
-            self.img_rects = np.append(self.top_img, self.img_rects, axis=0)
-        self.show_images()                               #Show the images
-
-    
 
     def run(self):                                      #master run function for the program
         _ = self.contour_manipulation(self.preprocess_canny_contours())
@@ -98,6 +114,24 @@ class FindPlate:
         cv.drawContours(self.img_copy, contours, -1, (0, 0, 255), thickness=2)   #Draw the contours onto the copied image
         cv.imshow("Contours", self.img_copy)             #show image
         return contours
+
+
+
+    def process_ROI(self, roi):
+        # imgray = cv.cvtColor(roi, cv.COLOR_BGR2GRAY)
+        imgray = cv.bitwise_not(roi)
+        imgray = cv.dilate(imgray, (3, 3), iterations = 2)
+        thresh = cv.threshold(imgray, 0, 127, cv.THRESH_BINARY+cv.THRESH_OTSU)
+        # imgray = cv.Canny(imgray, 250, 254)
+        contours, _ = cv.findContours(imgray, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        contours = sorted(contours, key=cv.contourArea, reverse=True)
+        cv.imshow("GRAY", imutils.resize(imgray, height=200))
+        for count, contour in enumerate(contours[ : self.amt_digits]):
+            # print("COUNT: {}".format(count))
+            x, y, w, h = cv.boundingRect(contour)
+            regionOfInterest = roi[y : y + h, x : x + w]
+            cv.imshow("Letter {}".format(count), imutils.resize(regionOfInterest, height = 100))
+            cv.moveWindow("Letter {}".format(count), 600, 110 * count)
 
 
 
@@ -218,8 +252,11 @@ class FindPlate:
 
 
     def show_images(self, height = 300):      #showing the images and putting them in the right place on the screen
-
         cv.imshow("Original", imutils.resize(self.img, height = height))
+        self.check_keys()                                           #kind of inefficient to be checking the keys every time, but otherwise the program is unresponsive
+
+
+    def show_images_exec(self, height = 300):
         cv.imshow("Contours", imutils.resize(self.img_copy, height = height))
         cv.imshow("Bounding Rects", imutils.resize(self.img_rects, height = height * 4))
         cv.imshow("Canny", imutils.resize(self.Canny, height = height))
@@ -231,7 +268,10 @@ class FindPlate:
             cv.imshow(name, imutils.resize(regionOfInterest, height=100, inter=cv.INTER_CUBIC))   #showing and resizing image
             cv.moveWindow(name, 0, 110 * count - 50)                #Moving the ROI windows into the right spot on the screen
             # print(pytesseract.image_to_string(regionOfInterest))    #printing that is on the images using pytesseract
-            self.check_keys()                                       #kind of inefficient to be checking the keys every time, but otherwise the program is unresponsive
+            self.process_ROI(regionOfInterest)
+        
+        self.show_images()
+        
 
 
 
@@ -246,6 +286,7 @@ class FindPlate:
             if key & 0xFF == ord('q'):                  #exit button
                 exit(0)
             elif key & 0xFF == ord('p'):                # this creates a pause button for the video, in essence
+                print("VIDEO PAUSED")
                 while True:
                     key = cv.waitKey(25) & 0xFF
                     if key == ord('p'):                 #unpause
@@ -272,12 +313,15 @@ if __name__ == "__main__":
     cap = cv.VideoCapture('/Users/tristanbrigham/Downloads/BostonVid.mp4')
     print("Starting Video")
 
+    counter = 0
 
     while(cap.isOpened()):                          #reading and analyzing the video as it runs
+        counter = counter + 1
+        counter = counter % 10
         ret, img = cap.read()
         img = imutils.resize(img, width=640)
         if ret == True:
-            FindPlate(imgAddress = None, img = img)
+            FindPlate(counter=counter, img = img)
         else:
             break
     
