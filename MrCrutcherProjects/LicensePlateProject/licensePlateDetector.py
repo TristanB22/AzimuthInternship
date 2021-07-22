@@ -42,6 +42,7 @@ class FindPlate:
             self.setup_exec(optimize=optimize) #execute the program
         else:
             self.show_images()                          #Show the images
+        self.check_keys()
     
 
     def setup_exec(self, optimize):
@@ -118,9 +119,10 @@ class FindPlate:
 
 
     def process_ROI(self, roi, counter):
-        imgray = cv.bitwise_not(roi)
-        imgray = cv.dilate(imgray, (3, 3), iterations = 2)
-        ret, thresh = cv.threshold(imgray, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
+        imgray = roi
+        # imgray = cv.bitwise_not(imgray)
+        imgray = cv.dilate(imgray, (3, 1), iterations = 1)
+        ret, thresh = cv.threshold(imgray, 110, 255, cv.THRESH_BINARY)
         contours, _ = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         contours = sorted(contours, key=cv.contourArea, reverse=True)
         cv.imshow("GRAY {}".format(counter), imutils.resize(thresh, height=200))
@@ -250,10 +252,11 @@ class FindPlate:
         for count, regionOfInterest in enumerate(self.roi_array):
             name = "ROI {}".format(count)                           #format the name
             regionOfInterest = cv.cvtColor(regionOfInterest, cv.COLOR_BGR2GRAY)
-            cv.imshow(name, imutils.resize(regionOfInterest, height=100))   #showing and resizing image
+            image = imutils.resize(regionOfInterest, height=200, inter=cv.INTER_CUBIC)
+            cv.imshow(name, image)   #showing and resizing image
             cv.moveWindow(name, 0, 110 * count - 50)                #Moving the ROI windows into the right spot on the screen
             # print(pytesseract.image_to_string(regionOfInterest))    #printing that is on the images using pytesseract
-            self.process_ROI(regionOfInterest, count)
+            self.process_ROI(image, count)
         
         self.show_images()
         

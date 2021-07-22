@@ -23,13 +23,13 @@ def noisyCircuit(probability = 0.1, measure=True, bitStart = False, depolarize=F
     q3 = cirq.NamedQubit('d')
     qreg=list([q0, q1, q2, q3])
     bitFlipInd = 1
-    depInd = 2
-    bitPhaseFlipInd = 3
-    measureInd = 5
+    depInd = 1
+    bitPhaseFlipInd = 2
+    measureInd = 4
 
     circuit = cirq.Circuit(
         cirq.Moment([cirq.X(q1)]),
-        cirq.Moment([cirq.H.on_each(qreg)]),
+        # cirq.Moment([cirq.H.on_each(qreg)]),
         cirq.qft(*qreg),
         cirq.qft(*qreg, inverse=True),
         # cirq.reset(qreg[1]),
@@ -67,7 +67,7 @@ def noisyCircuit(probability = 0.1, measure=True, bitStart = False, depolarize=F
 
 
 probabilities = [0, 0.01, 0.1, 0.2, 0.3, 0.5]
-iterations = 100
+iterations = 10000
 keys_measure = ["m0", "m1", "m2", "m3"]
 configurations = [(True, False, False, False, False), (True, True, False, False, False), (True, False, True, False, False), (True, False, False, True, False)]
 # measure, bitstart, depolarize, bitphase, cbitflip
