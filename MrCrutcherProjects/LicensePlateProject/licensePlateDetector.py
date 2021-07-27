@@ -8,15 +8,8 @@ print("Loaded NP")
 # print("Loaded TF")
 import imutils
 print("Loaded IMUTILS")
-# from skimage.filters import threshold_local
-print("Loaded THRESHOLD")
-# from skimage import measure
-print("Loaded MEASURE")
 # import pytesseract
 # print("Loaded PYTESSERACT")
-from skimage.filters import threshold_local
-from skimage import measure
-print("IMPORTED SKIMAGE")
 
 
 ### Class for plate detection
@@ -81,7 +74,7 @@ class FindPlate:
         self.angle_min = 83     #After the angle of the cv.areaMinRect has a modulo 90 applied to it, the angle either needs to be close to upright (this value or above)
         self.angle_max = 7      # or close to horizontal (this value or below) in degrees
 
-        self.area_min = 130      #minimum area of the accepted bounding boxes -- it recognizes plates with smaller values but there is no way that characters can be picked out. No use to have smaller
+        self.area_min = 180      #minimum area of the accepted bounding boxes -- it recognizes plates with smaller values but there is no way that characters can be picked out. No use to have smaller
         self.area_max = 350      #max area of the accepted bounding boxes
 
         self.lower_canny = 90    #upper value for canny thresholding
@@ -119,19 +112,35 @@ class FindPlate:
 
 
     def process_ROI(self, roi, counter):
-        imgray = roi
-        # imgray = cv.bitwise_not(imgray)
-        imgray = cv.dilate(imgray, (3, 1), iterations = 1)
-        ret, thresh = cv.threshold(imgray, 110, 255, cv.THRESH_BINARY)
+        regionOfInterest = roi[int(roi.shape[0] / 5) : roi.shape[0] - int(roi.shape[0] / 5), int(roi.shape[1] / 12) : roi.shape[1] - int(roi.shape[1] / 12)]
+        name = "ROI {}".format(counter)                           #format the name
+        regionOfInterest = cv.cvtColor(regionOfInterest, cv.COLOR_BGR2GRAY)
+        regionOfInterest = imutils.resize(regionOfInterest, height=200, inter=cv.INTER_CUBIC)
+        # image = regionOfInterest
+        image = cv.GaussianBlur(regionOfInterest, (0, 0), 3)
+        image = cv.addWeighted(image, 1.5, regionOfInterest, -0.5, 0)
+
+        ret, thresh = cv.threshold(image, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
+        thresh = cv.dilate(thresh, (3, 5), iterations = 1)
+        thresh = cv.bitwise_not(thresh)
         contours, _ = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         contours = sorted(contours, key=cv.contourArea, reverse=True)
         cv.imshow("GRAY {}".format(counter), imutils.resize(thresh, height=200))
+        cv.imshow("SKELETON {}".format(counter), imutils.skeletonize(imutils.resize(thresh, height=200), size=(3, 3)))
+
+        image = cv.cvtColor(image, cv.COLOR_GRAY2BGR)
+
         for count, contour in enumerate(contours[ : self.amt_digits]):
             print("COUNT: {}".format(count))
             x, y, w, h = cv.boundingRect(contour)
-            regionOfInterest = roi[y : y + h, x : x + w]
-            cv.imshow("Letter {}".format(count), imutils.resize(regionOfInterest, height = 100))
-            cv.moveWindow("Letter {}".format(count), 600, 110 * count)
+            letterInterest = regionOfInterest[y : y + h, x : x + w]
+            # cv.imshow("Letter {}".format(count), imutils.resize(letterInterest, height = 100))
+            # cv.moveWindow("Letter {}".format(count), 600, 110 * count)
+            cv.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0))
+
+        cv.imshow(name, image)   #showing and resizing image
+        cv.moveWindow(name, 0, 110 * counter - 50)                #Moving the ROI windows into the right spot on the screen
+        # print(pytesseract.image_to_string(regionOfInterest))    #printing that is on the images using pytesseract
 
 
 
@@ -250,13 +259,7 @@ class FindPlate:
 
         #SHOWING THE ROI's
         for count, regionOfInterest in enumerate(self.roi_array):
-            name = "ROI {}".format(count)                           #format the name
-            regionOfInterest = cv.cvtColor(regionOfInterest, cv.COLOR_BGR2GRAY)
-            image = imutils.resize(regionOfInterest, height=200, inter=cv.INTER_CUBIC)
-            cv.imshow(name, image)   #showing and resizing image
-            cv.moveWindow(name, 0, 110 * count - 50)                #Moving the ROI windows into the right spot on the screen
-            # print(pytesseract.image_to_string(regionOfInterest))    #printing that is on the images using pytesseract
-            self.process_ROI(image, count)
+            self.process_ROI(regionOfInterest, count)
         
         self.show_images()
         
