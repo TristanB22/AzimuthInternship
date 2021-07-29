@@ -15,6 +15,11 @@ print("Loaded IMUTILS")
 ### Class for plate detection
 
 class FindPlate:
+
+    ########################################################################################
+    #################################### SETUP PROGRAM! ####################################
+    ########################################################################################
+
     #should maybe make the parameters global variables or controlled by the command line
     # Have to adjust so that the min and max are larger when analyzing the images and smaller when looking at the vids
     def __init__(self, counter, check_wait = False, optimize=True, imgAddress = None, img = None):
@@ -49,7 +54,7 @@ class FindPlate:
         
         self.x = self.img.shape[1]                      #getting the width of the image
 
-        self.img_copy = self.img.copy()                 #getting copies for analysis
+        self.img_copy = self.img.copy()                 #getting copies for analysis/blurring
         self.img_rects = self.img.copy()                #the copy that will be used for bounding rectangles
         self.Canny = None                               #Initializing variable to hold Canny image
         self.run()
@@ -69,17 +74,18 @@ class FindPlate:
         self.amt_digits = 6     #defining the amount of characters and digits that should be found on the license plate 
 
         self.ratio_max = 3      #This is the maximum width to height ratio that a license plate can be in the program (for the US, about 4 is good while for EU plates, about 6-7 is good)
-        self.ratio_min = 2      #This is the minimum width to height ratio 
+        self.ratio_min = 1.5      #This is the minimum width to height ratio 
 
-        self.angle_min = 80     #After the angle of the cv.areaMinRect has a modulo 90 applied to it, the angle either needs to be close to upright (this value or above)
-        self.angle_max = 10      # or close to horizontal (this value or below) in degrees
+        self.angle_min = 84     #After the angle of the cv.areaMinRect has a modulo 90 applied to it, the angle either needs to be close to upright (this value or above)
+        self.angle_max = 6      # or close to horizontal (this value or below) in degrees
 
         self.img_size = self.img.shape[0] * self.img.shape[1]
 
-        self.area_min = int(self.img_size / 1280)      #minimum area of the accepted bounding boxes -- it recognizes plates with smaller values but there is no way that characters can be picked out. No use to have smaller
-        self.area_max = int(self.img_size / 660)     #max area of the accepted bounding boxes
+        #current size: about 240,000 pixels
+        self.area_min = int(self.img_size / 1380)      #minimum area of the accepted bounding boxes -- it recognizes plates with smaller values but there is no way that characters can be picked out. No use to have smaller
+        self.area_max = int(self.img_size / 600)     #max area of the accepted bounding boxes
 
-        self.lower_canny = 100    #upper value for canny thresholding
+        self.lower_canny = 120    #upper value for canny thresholding
         self.upper_canny = 130   #Lower value for canny thresholding
 
         #ASPECT variables are not used:
@@ -87,16 +93,23 @@ class FindPlate:
         self.aspect_min = 0.3    #the minimum amount of area that a license plate can cover within a bounding box to be considered
 
         self.img_dilate = 40    #specifying the value that the pixels which are being brightened will be increased by
-        self.blur = (11, 11)    #initializing the size component of the gaussian blur that is applied to the image
+        self.blur = (5, 5)    #initializing the size component of the gaussian blur that is applied to the image
         self.offset = 0         #initializing the variable which keeps track of how far from the top of the image the program begins to analyze
         self.top_img = None     #initializing the variable which may hold the top part of the image for later
         self.element_structure = cv.getStructuringElement(shape=cv.MORPH_RECT, ksize=(5, 5)) #basic elem structure for blurring
+        self.letter_contour_min = 300 #The minimum size a contour has to be for it to be considered for letter analysis
 
         self.roi_array = []      #array for holding the ROI's
 
 
     def run(self):                                      #master run function for the program
         _ = self.contour_manipulation(self.preprocess_canny_contours())
+
+
+
+    ########################################################################################
+    ################################### ANALYZING IMAGES ###################################
+    ########################################################################################
 
 
 
@@ -109,9 +122,20 @@ class FindPlate:
                                                                                             #Because Canny just returns lines]
         contours = imutils.grab_contours(contours)      #Get the contours using imutils
         
-        cv.drawContours(self.img_copy, contours, -1, (0, 0, 255), thickness=2)   #Draw the contours onto the copied image
+        # cv.drawContours(self.img_copy, contours, -1, (0, 0, 255), thickness=2)   #Draw the contours onto the copied image
         return contours
 
+
+    def analyze_image(self):        # getting an array of the potential letters from each license plate ROI
+        letterArrays = []
+
+        #SHOWING THE ROI's
+        for count, regionOfInterest in enumerate(self.roi_array):
+            data = self.process_ROI(regionOfInterest, count)
+            if data is not None:
+                letterArrays += data
+        
+        return letterArrays
 
 
     def process_ROI(self, roi, counter):
@@ -119,7 +143,7 @@ class FindPlate:
         name = "ROI {}".format(counter)                           #format the name
         regionOfInterest = cv.cvtColor(regionOfInterest, cv.COLOR_BGR2GRAY)
 
-        regionOfInterest[: int(regionOfInterest.shape[0] / 6), :] += self.img_dilate                              #Increasing the brightness of the top of the image (BREAKS WITH HIGH VALUES because of overflow)
+        regionOfInterest[: int(regionOfInterest.shape[0] / 6), :] += self.img_dilate    #Increasing the brightness of the top of the image (BREAKS WITH HIGH VALUES because of overflow)
 
         regionOfInterest = imutils.resize(regionOfInterest, height=200, inter=cv.INTER_AREA)
         image = cv.GaussianBlur(regionOfInterest, (0, 0), 3)
@@ -129,24 +153,35 @@ class FindPlate:
         # thresh = cv.dilate(thresh, (3, 5), iterations = 1)
         thresh = cv.bitwise_not(thresh)
         # thresh = cv.dilate(thresh, (7, 5), iterations = 1)
-        thresh = cv.erode(thresh, (81, 81), iterations = 15)
+        # thresh = cv.erode(thresh, (81, 81), iterations = 15)
+        thresh = cv.dilate(thresh, (71, 3))
         contours, _ = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         contours = sorted(contours, key=cv.contourArea, reverse=True)
         cv.imshow("GRAY {}".format(counter), imutils.resize(thresh, height=200))
 
         image = cv.cvtColor(image, cv.COLOR_GRAY2BGR)
 
-        for count, contour in enumerate(contours[ : self.amt_digits]):
-            print("COUNT: {}".format(count))
-            x, y, w, h = cv.boundingRect(contour)
-            letterInterest = regionOfInterest[y : y + h, x : x + w]
-            # cv.imshow("Letter {}".format(count), imutils.resize(letterInterest, height = 100))
-            # cv.moveWindow("Letter {}".format(count), 600, 110 * count)
-            cv.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0))
+        letters = []
+        for contour in contours:
+            if cv.contourArea(contour) > self.letter_contour_min:
+                x, y, w, h = cv.boundingRect(contour)
+                letterInterest = regionOfInterest[y : y + h, x : x + w]
+                # cv.imshow("Letter {}".format(count), imutils.resize(letterInterest, height = 100))
+                # cv.moveWindow("Letter {}".format(count), 600, 110 * count)
+                cv.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0))
+                letters.append(cv.resize(letterInterest, (60, 80), interpolation = cv.INTER_AREA))
 
         cv.imshow(name, image)   #showing and resizing image
         cv.moveWindow(name, 0, 110 * counter - 50)                #Moving the ROI windows into the right spot on the screen
-        # print(pytesseract.image_to_string(regionOfInterest))    #printing that is on the images using pytesseract
+        
+        if len(letters) > 5: return letters
+        else: return None
+
+
+
+    ########################################################################################
+    #################################### CONTOUR SORTING ###################################
+    ########################################################################################
 
 
 
@@ -200,13 +235,9 @@ class FindPlate:
 
 
 
-    def contours_thick(self, contours):              #Draws the passed contours with a thickness of 2
-        cv.drawContours(self.img, contours, -1, (255, 0, 0), thickness=2)
-
-
-
-    def get_rect(self, contour):                         #Method to just get the bounding rectangles
-        return cv.boundingRect(contour)
+    ########################################################################################
+    ################################### CHECKING CONTOURS ##################################
+    ########################################################################################
 
 
 
@@ -216,7 +247,7 @@ class FindPlate:
         box = np.int0(box)                              #for drawing the min area rectangles
         rx, ry, rw, rh = cv.boundingRect(contour)
         if self.validateRatio(rect, rw, rh):
-            cv.drawContours(self.img_rects,[box], 0, (0, 255, 0), 1)
+            cv.drawContours(self.img_rects,[box], 0, (0, 255, 0), 4)
             brect = self.img[ry : ry + rh, rx : rx + rw]
             self.roi_array.append(brect)
             return True                                 #if everything is right, then return the contour and true to show that it is valid
@@ -253,6 +284,12 @@ class FindPlate:
 
 
 
+    ########################################################################################
+    #################################### SHOWING IMAGES ####################################
+    ########################################################################################
+
+
+
     def show_images(self, height = 300):      #showing the images and putting them in the right place on the screen
         cv.imshow("Original", imutils.resize(self.img, height = 200))
         self.check_keys()                                           #kind of inefficient to be checking the keys every time, but otherwise the program is unresponsive
@@ -263,10 +300,7 @@ class FindPlate:
         cv.imshow("Bounding Rects", self.img_rects)
         cv.imshow("Canny", imutils.resize(self.Canny, height = height))
 
-        #SHOWING THE ROI's
-        for count, regionOfInterest in enumerate(self.roi_array):
-            self.process_ROI(regionOfInterest, count)
-        
+        self.analyze_image()
         self.show_images()
         
 
@@ -292,6 +326,11 @@ class FindPlate:
                         exit(0)
 
 
+    ########################################################################################
+    ############################### VID PROCESSING AND SETUP ###############################
+    ########################################################################################
+
+
 if __name__ == "__main__":
 
     #addresses for testing still images on my machine:
@@ -314,9 +353,9 @@ if __name__ == "__main__":
 
     while(cap.isOpened()):                          #reading and analyzing the video as it runs
         counter = counter + 1
-        counter = counter % 20
+        counter = counter % 10
         ret, img = cap.read()
-        img = imutils.resize(img, width=900)
+        # img = imutils.resize(img, width=900)
         if ret == True:
             FindPlate(counter=counter, img = img)
         else:
