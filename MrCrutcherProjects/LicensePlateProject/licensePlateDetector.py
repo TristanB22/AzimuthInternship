@@ -133,7 +133,7 @@ class FindPlate:
         for count, regionOfInterest in enumerate(self.roi_array):
             data = self.process_ROI(regionOfInterest, count)
             if data is not None:
-                letterArrays += data
+                letterArrays.append(data)
         
         return letterArrays
 
