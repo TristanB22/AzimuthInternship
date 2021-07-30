@@ -17,24 +17,35 @@ class BitAndPhaseFlipChannel(cirq.SingleQubitGate):
         return f"BitAndPhaseFlip({self._p})"
 
 def threeQubitCorrection(is_one = False):
-    q0, q1, q2, q3, q4 = cirq.LineQubit.range(5)
+    q1, q2, q3, q4, q5, extra_qubit = cirq.LineQubit.range(6)
     circuit = cirq.Circuit()
     
     # translates all of the bits into 1's
     if is_one:
         circuit.insert(cirq.Moment([
-            cirq.X(q0),
             cirq.X(q1),
-            cirq.X(q2)
+            cirq.X(q2),
+            cirq.X(q3)
         ]))
     
     circuit.append(
-        cirq.CNOT(q0, q3),
-        cirq.CNOT(q1, q3),
         cirq.CNOT(q1, q4),
         cirq.CNOT(q2, q4),
-        cirq.measure(q3, key="q3"),
-        cirq.measure(q4, key="q4")
+        cirq.CNOT(q2, q5),
+        cirq.CNOT(q3, q5),
+        cirq.measure(q4, key="q4"),
+        cirq.measure(q5, key="q5")
+    )
+
+    #error correction:
+
+    circuit.append(
+        cirq.CCNOT(q4, q5, extra_qubit), #if they are both turned to one, then we know that q2 was flipped
+        cirq.CNOT(extra_qubit, q2),     #checking so that if both of the ancilla are 1, then only q2 is changed
+        cirq.CNOT(extra_qubit, q4),
+        cirq.CNOT(extra_qubit, q5),
+        cirq.CNOT(q4, q1),              #q4/5 will hold their state if both of them are not one
+        cirq.CNOT(q5, q2,)              #in which case we correct their respective qubit
     )
 
     return circuit

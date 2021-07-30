@@ -4,21 +4,23 @@ import cv2 as cv
 print("Loaded CV")
 import numpy as np
 print("Loaded NP")
-# import tensorflow as tf
-# print("Loaded TF")
+import tensorflow as tf
+print("Loaded TF")
 import imutils
 print("Loaded IMUTILS")
+from tensorflow import keras
+print("Loaded KERAS")
 # import pytesseract
 # print("Loaded PYTESSERACT")
 
 
 ### Class for plate detection
 
-class FindPlate:
-
     ########################################################################################
     #################################### SETUP PROGRAM! ####################################
     ########################################################################################
+
+class FindPlate:
 
     #should maybe make the parameters global variables or controlled by the command line
     # Have to adjust so that the min and max are larger when analyzing the images and smaller when looking at the vids
@@ -324,6 +326,17 @@ class FindPlate:
                         break
                     elif key == ord('q'):               #quit the program button
                         exit(0)
+
+
+
+
+    ########################################################################################
+    #################################### NEURAL NETWORK ####################################
+    ########################################################################################
+
+class TrainNeuralNetwork:
+    def __init__(self, ):
+
 
 
     ########################################################################################
