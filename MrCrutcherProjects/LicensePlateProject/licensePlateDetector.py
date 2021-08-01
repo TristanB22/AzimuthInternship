@@ -4,14 +4,24 @@ import cv2 as cv
 print("Loaded CV")
 import numpy as np
 print("Loaded NP")
-import tensorflow as tf
-print("Loaded TF")
+# import tensorflow as tf
+# print("Loaded TF")
 import imutils
 print("Loaded IMUTILS")
-from tensorflow import keras
-print("Loaded KERAS")
-# import pytesseract
-# print("Loaded PYTESSERACT")
+# from tensorflow import keras
+# print("Loaded KERAS")
+import pytesseract
+print("Loaded PYTESSERACT")
+import re
+print("Loaded REGEX")
+
+    ########################################################################################
+    #################################### VID MANIPULATION ####################################
+    ########################################################################################
+
+def skip_forward():
+    frame_count = cap.get(cv.CAP_PROP_POS_FRAMES)
+    cap.set(cv.CAP_PROP_POS_FRAMES, frame_count + 500)
 
 
 ### Class for plate detection
@@ -87,8 +97,8 @@ class FindPlate:
         self.area_min = int(self.img_size / 1380)      #minimum area of the accepted bounding boxes -- it recognizes plates with smaller values but there is no way that characters can be picked out. No use to have smaller
         self.area_max = int(self.img_size / 600)     #max area of the accepted bounding boxes
 
-        self.lower_canny = 120    #upper value for canny thresholding
-        self.upper_canny = 130   #Lower value for canny thresholding
+        self.lower_canny = 110    #upper value for canny thresholding
+        self.upper_canny = 120   #Lower value for canny thresholding
 
         #ASPECT variables are not used:
         self.aspect_max = 1      #the max amount of area that the license plate can cover within a bounding box to be considered
@@ -99,7 +109,7 @@ class FindPlate:
         self.offset = 0         #initializing the variable which keeps track of how far from the top of the image the program begins to analyze
         self.top_img = None     #initializing the variable which may hold the top part of the image for later
         self.element_structure = cv.getStructuringElement(shape=cv.MORPH_RECT, ksize=(5, 5)) #basic elem structure for blurring
-        self.letter_contour_min = 300 #The minimum size a contour has to be for it to be considered for letter analysis
+        self.letter_contour_min = 2000 #The minimum size a contour has to be for it to be considered for letter analysis
 
         self.roi_array = []      #array for holding the ROI's
 
@@ -141,7 +151,7 @@ class FindPlate:
 
 
     def process_ROI(self, roi, counter):
-        regionOfInterest = roi[int(roi.shape[0] / 4) : roi.shape[0] - int(roi.shape[0] / 4 ), int(roi.shape[1] / 14) : roi.shape[1] - int(roi.shape[1] / 14)]
+        regionOfInterest = roi[int(roi.shape[0] / 4) : roi.shape[0] - int(roi.shape[0] / 5), int(roi.shape[1] / 18) : roi.shape[1] - int(roi.shape[1] / 18)] #
         name = "ROI {}".format(counter)                           #format the name
         regionOfInterest = cv.cvtColor(regionOfInterest, cv.COLOR_BGR2GRAY)
 
@@ -155,7 +165,7 @@ class FindPlate:
         # thresh = cv.dilate(thresh, (3, 5), iterations = 1)
         thresh = cv.bitwise_not(thresh)
         # thresh = cv.dilate(thresh, (7, 5), iterations = 1)
-        # thresh = cv.erode(thresh, (81, 81), iterations = 15)
+        thresh = cv.erode(thresh, (81, 81), iterations = 15)
         thresh = cv.dilate(thresh, (71, 3))
         contours, _ = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         contours = sorted(contours, key=cv.contourArea, reverse=True)
@@ -167,16 +177,19 @@ class FindPlate:
         for contour in contours:
             if cv.contourArea(contour) > self.letter_contour_min:
                 x, y, w, h = cv.boundingRect(contour)
-                letterInterest = regionOfInterest[y : y + h, x : x + w]
+                letterInterest = thresh[0 : thresh.shape[0], x : x + w]
                 # cv.imshow("Letter {}".format(count), imutils.resize(letterInterest, height = 100))
                 # cv.moveWindow("Letter {}".format(count), 600, 110 * count)
                 cv.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0))
-                letters.append(cv.resize(letterInterest, (60, 80), interpolation = cv.INTER_AREA))
+                letterImage = cv.resize(letterInterest, (60, 80))
+                letters.append(letterImage)
 
         cv.imshow(name, image)   #showing and resizing image
         cv.moveWindow(name, 0, 110 * counter - 50)                #Moving the ROI windows into the right spot on the screen
         
-        if len(letters) > 5: return letters
+        if len(letters) > 4:
+            TrainNeuralNetwork.label_letter(letters)
+            return letters
         else: return None
 
 
@@ -294,7 +307,7 @@ class FindPlate:
 
     def show_images(self, height = 300):      #showing the images and putting them in the right place on the screen
         cv.imshow("Original", imutils.resize(self.img, height = 200))
-        self.check_keys()                                           #kind of inefficient to be checking the keys every time, but otherwise the program is unresponsive
+        # self.check_keys()                                           #kind of inefficient to be checking the keys every time, but otherwise the program is unresponsive
 
 
     def show_images_exec(self, height = 300):
@@ -304,6 +317,7 @@ class FindPlate:
 
         self.analyze_image()
         self.show_images()
+        self.check_keys()
         
 
 
@@ -318,6 +332,8 @@ class FindPlate:
             key = cv.waitKey(1)
             if key & 0xFF == ord('q'):                  #exit button
                 exit(0)
+            elif key == ord('s'):
+                skip_forward()
             elif key & 0xFF == ord('p'):                # this creates a pause button for the video, in essence
                 print("VIDEO PAUSED")
                 while True:
@@ -326,6 +342,8 @@ class FindPlate:
                         break
                     elif key == ord('q'):               #quit the program button
                         exit(0)
+                    elif key == ord('s'):
+                        skip_forward()
 
 
 
@@ -334,9 +352,37 @@ class FindPlate:
     #################################### NEURAL NETWORK ####################################
     ########################################################################################
 
-class TrainNeuralNetwork:
-    def __init__(self, ):
+imageNumber = 0
+training_file_keys ="/Users/tristanbrigham/GithubProjects/AI_Training_Data/LicensePlateProject/training_data"
+char_array = []
 
+class TrainNeuralNetwork:
+    def __init__(self):
+        print("Initialized")
+
+    def label_letter(imagearr):
+        for image in imagearr:
+            print("FRAME COUNT: {}".format(cap.get(cv.CAP_PROP_POS_FRAMES)))
+            global imageNumber 
+            global training_file_keys
+            cv.imshow("POSSIBLE LETTER", image)
+            cv.waitKey(1)
+            imageNumber = imageNumber + 1
+            letter = input("Please input the letter: ").upper()
+            # letter = pytesseract.image_to_string(image).upper()
+            # letter = re.sub(r"\\s+", "", letter)
+            hexval = ":".join("{:02x}".format(ord(c)) for c in letter)
+            if len(letter) < 1 or hexval == "0c":
+                letter = '_'
+            else:
+                letter = letter[0]
+            char_array.append(letter)
+            file = open("/Users/tristanbrigham/GithubProjects/AI_Training_Data/LicensePlateProject/" + str(imageNumber) + ".txt", "w")
+            for row in image:
+                np.savetxt(file, row)
+            print("Letter passed: " + letter)
+            training_file = open(training_file_keys, "a")
+            training_file.write("\n" + str(letter))
 
 
     ########################################################################################
@@ -355,18 +401,25 @@ if __name__ == "__main__":
         "licensePlate5.jpeg",
     ]
 
+    start_frame_number = 40000       #the starting frame number in the video
+
     print("\n\nWelcome\nPlease press q to quit the program\nPlease press p to pause and unpause during the video\nPlease press anything else to continue through the images")
     print("\nOnce you have looked at all of the still images, the video will begin\n\n")
     print("Green boxes signify possible license plate regions \nwhile red ones show other ROI's which were picked up and discarded")
     
     cap = cv.VideoCapture('/Users/tristanbrigham/Downloads/BostonVid.mp4')
-    print("Starting Video")
+    print("Starting Video @ frame " + str(start_frame_number))
+    cap.set(cv.CAP_PROP_POS_FRAMES, start_frame_number) #setting the starting frame number to the correct number
+
+    file_keys = open(training_file_keys, "r")
+    imageNumber = int(file_keys.readline().rstrip())
+    print("INDEX: " + str(imageNumber))
 
     counter = 0
 
     while(cap.isOpened()):                          #reading and analyzing the video as it runs
         counter = counter + 1
-        counter = counter % 10
+        counter = counter % 40
         ret, img = cap.read()
         # img = imutils.resize(img, width=900)
         if ret == True:
@@ -376,3 +429,4 @@ if __name__ == "__main__":
     
     cap.release()
     cv.destroyAllWindows()
+
