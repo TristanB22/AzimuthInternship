@@ -1,13 +1,11 @@
-from re import T
-from cirq.ops.pauli_gates import Z
 import cv2 as cv
 import numpy as np
 
-file = open("/Users/tristanbrigham/GithubProjects/AI_Training_Data/LicensePlateProject/training_data", "r")
+file = open("/Users/tristanbrigham/GithubProjects/AI_Training_Data/LicensePlateProject/training_data.txt", "r")
 # cv.imwrite("/Users/tristanbrigham/GithubProjects/AI_Training_Data/LicensePlateProject/0.txt", np.zeros((60, 80)))
 linesarr = file.readlines()
 print("LENGTH: {}".format(len(linesarr)))
-for count in range(1, len(linesarr)):
+for count in range(2000, len(linesarr)):
     array = np.loadtxt("/Users/tristanbrigham/GithubProjects/AI_Training_Data/LicensePlateProject/" + str(count) + ".txt")
     if len(array) < 4800:
         print("APPENDING {}".format(4800 - len(array)))

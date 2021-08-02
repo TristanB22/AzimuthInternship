@@ -21,7 +21,7 @@ print("Loaded REGEX")
 
 def skip_forward():
     frame_count = cap.get(cv.CAP_PROP_POS_FRAMES)
-    cap.set(cv.CAP_PROP_POS_FRAMES, frame_count + 500)
+    cap.set(cv.CAP_PROP_POS_FRAMES, frame_count + 2000)
 
 
 ### Class for plate detection
@@ -162,11 +162,11 @@ class FindPlate:
         image = cv.addWeighted(image, 1.5, regionOfInterest, -0.5, 0)
 
         ret, thresh = cv.threshold(image, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
+        # ret, thresh = cv.threshold(image, self.contour_license_plate, 255, cv.THRESH_BINARY)
         # thresh = cv.dilate(thresh, (3, 5), iterations = 1)
         thresh = cv.bitwise_not(thresh)
-        # thresh = cv.dilate(thresh, (7, 5), iterations = 1)
-        thresh = cv.erode(thresh, (81, 81), iterations = 15)
-        thresh = cv.dilate(thresh, (71, 3))
+        thresh = cv.erode(thresh, (81, 61), iterations = 15)
+        # thresh = cv.dilate(thresh, (71, 3))
         contours, _ = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         contours = sorted(contours, key=cv.contourArea, reverse=True)
         cv.imshow("GRAY {}".format(counter), imutils.resize(thresh, height=200))
@@ -177,7 +177,7 @@ class FindPlate:
         for contour in contours:
             if cv.contourArea(contour) > self.letter_contour_min:
                 x, y, w, h = cv.boundingRect(contour)
-                letterInterest = thresh[0 : thresh.shape[0], x : x + w]
+                letterInterest = thresh[0 : y + h, x : x + w]
                 # cv.imshow("Letter {}".format(count), imutils.resize(letterInterest, height = 100))
                 # cv.moveWindow("Letter {}".format(count), 600, 110 * count)
                 cv.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0))
@@ -353,7 +353,7 @@ class FindPlate:
     ########################################################################################
 
 imageNumber = 0
-training_file_keys ="/Users/tristanbrigham/GithubProjects/AI_Training_Data/LicensePlateProject/training_data"
+training_file_keys ="/Users/tristanbrigham/GithubProjects/AI_Training_Data/LicensePlateProject/training_data.txt"
 char_array = []
 
 class TrainNeuralNetwork:
@@ -398,10 +398,17 @@ if __name__ == "__main__":
         "licensePlate2.jpeg",
         "licensePlate3.jpeg",
         "licensePlate4.jpeg",
-        "licensePlate5.jpeg",
+        "licensePlate5.jpeg"
     ]
 
-    start_frame_number = 40000       #the starting frame number in the video
+    imageAddresses2 = [
+        "license_plate_letter_0",
+        "license_plate_letter_1",
+        "license_plate_letter_2",
+        "license_plate_letter_3"
+    ]
+
+    start_frame_number = 21000       #the starting frame number in the video
 
     print("\n\nWelcome\nPlease press q to quit the program\nPlease press p to pause and unpause during the video\nPlease press anything else to continue through the images")
     print("\nOnce you have looked at all of the still images, the video will begin\n\n")
