@@ -22,31 +22,32 @@ def threeQubitCorrection(is_one = False):
     
     # translates all of the bits into 1's
     if is_one:
-        circuit.insert(cirq.Moment([
+        circuit.insert(0, cirq.Moment([
             cirq.X(q1),
             cirq.X(q2),
             cirq.X(q3)
         ]))
     
-    circuit.append(
-        cirq.CNOT(q1, q4),
-        cirq.CNOT(q2, q4),
-        cirq.CNOT(q2, q5),
-        cirq.CNOT(q3, q5),
-        cirq.measure(q4, key="q4"),
-        cirq.measure(q5, key="q5")
-    )
+    #setting the values of the ancilla bits to the correct values
+    circuit.append(cirq.CNOT(q1, q4))
+    circuit.append(cirq.CNOT(q2, q4))
+    circuit.append(cirq.CNOT(q2, q5))
+    circuit.append(cirq.CNOT(q3, q5))
 
     #error correction:
+    circuit.append(cirq.CCNOT(q4, q5, extra_qubit)) #if they are both turned to one, then we know that q2 was flipped
+    circuit.append(cirq.CNOT(extra_qubit, q2))     #checking so that if both of the ancilla are 1, then only q2 is changed
+    circuit.append(cirq.CNOT(extra_qubit, q4))
+    circuit.append(cirq.CNOT(extra_qubit, q5))
+    circuit.append(cirq.CNOT(q4, q1))              #q4/5 will hold their state if both of them are not one
+    circuit.append(cirq.CNOT(q5, q3))              #in which case we correct their respective qubit
+    
 
-    circuit.append(
-        cirq.CCNOT(q4, q5, extra_qubit), #if they are both turned to one, then we know that q2 was flipped
-        cirq.CNOT(extra_qubit, q2),     #checking so that if both of the ancilla are 1, then only q2 is changed
-        cirq.CNOT(extra_qubit, q4),
-        cirq.CNOT(extra_qubit, q5),
-        cirq.CNOT(q4, q1),              #q4/5 will hold their state if both of them are not one
-        cirq.CNOT(q5, q2,)              #in which case we correct their respective qubit
-    )
+    circuit.append(cirq.Moment([
+        cirq.measure(q1, key="mi1"),
+        cirq.measure(q2, key="mi2"),
+        cirq.measure(q3, key="mi3")
+    ]))
 
     return circuit
 
@@ -101,28 +102,51 @@ def noisyCircuit(probability = 0.1, measure=True, bitStart = False, depolarize=F
     return circuit
 
 
-probabilities = [0, 0.01, 0.1, 0.2, 0.3, 0.5]
-iterations = 1000
-keys_measure = ["m0", "m1", "m2", "m3"]
-configurations = [(True, False, False, False, False), (True, True, False, False, False), (True, False, True, False, False), (True, False, False, True, False)]
-# measure, bitstart, depolarize, bitphase, cbitflip
+def run_noisy():
 
-for config in configurations:
+    probabilities = [0, 0.01, 0.1, 0.2, 0.3, 0.5]
+    iterations = 1000
+    keys_measure = ["m0", "m1", "m2", "m3"]
+    configurations = [(True, False, False, False, False), (True, True, False, False, False), (True, False, True, False, False), (True, False, False, True, False)]
+    # measure, bitstart, depolarize, bitphase, cbitflip
 
-    print("\n\nCONFIG :: {}".format(config))
+    for config in configurations:
 
-    for count, probability in enumerate(probabilities):
-        
-        print("PROBABILITY :: {}".format(probability))
+        print("\n\nCONFIG :: {}".format(config))
 
-        circuit = noisyCircuit(probability=probability, measure=config[0], bitStart=config[1], depolarize=config[2], bitPhase=config[3], bitEnd=config[4]) # 0, 0.01, 0.1, 0.2, 0.3
-        sim = cirq.DensityMatrixSimulator()
+        for count, probability in enumerate(probabilities):
+            
+            print("PROBABILITY :: {}".format(probability))
 
-        result = sim.run(circuit, repetitions=iterations)
+            circuit = noisyCircuit(probability=probability, measure=config[0], bitStart=config[1], depolarize=config[2], bitPhase=config[3], bitEnd=config[4]) # 0, 0.01, 0.1, 0.2, 0.3
+            sim = cirq.DensityMatrixSimulator()
 
-        print("A: {} | PROB OF GETTING ONE: %{}".format(result.histogram(key='m0'), round(100 * result.histogram(key='m0')[1] / iterations)))
-        print("B: {} | PROB OF GETTING ONE: %{}".format(result.histogram(key='m1'), round(100 * result.histogram(key='m1')[1] / iterations)))
-        print("C: {} | PROB OF GETTING ONE: %{}".format(result.histogram(key='m2'), round(100 * result.histogram(key='m2')[1] / iterations)))
-        print("D: {} | PROB OF GETTING ONE: %{}".format(result.histogram(key='m3'), round(100 * result.histogram(key='m3')[1] / iterations)))
-        print("\n")
+            result = sim.run(circuit, repetitions=iterations)
 
+            print("A: {} | PROB OF GETTING ONE: %{}".format(result.histogram(key='m0'), round(100 * result.histogram(key='m0')[1] / iterations)))
+            print("B: {} | PROB OF GETTING ONE: %{}".format(result.histogram(key='m1'), round(100 * result.histogram(key='m1')[1] / iterations)))
+            print("C: {} | PROB OF GETTING ONE: %{}".format(result.histogram(key='m2'), round(100 * result.histogram(key='m2')[1] / iterations)))
+            print("D: {} | PROB OF GETTING ONE: %{}".format(result.histogram(key='m3'), round(100 * result.histogram(key='m3')[1] / iterations)))
+            print("\n")
+
+
+def run2_noisy():   #returns 1 if the output after majority voting is 1
+    circuit = threeQubitCorrection(is_one = True)
+    print(circuit)
+    simulator = cirq.DensityMatrixSimulator()
+    res = simulator.run(circuit)
+    print("RESULTS: \n{}".format(res))
+    count1 = 0
+
+    measurement_keys = ["mi1", "mi2", "mi3"]
+    for key in measurement_keys:
+        if res.histogram(key=key)[1]:
+            count1 = count1 + 1
+
+    output = 1 if count1 > 1 else 0
+    print("OUTPUT: {}".format(output))
+    return output
+
+
+def run_circuit():
+    run2_noisy()
