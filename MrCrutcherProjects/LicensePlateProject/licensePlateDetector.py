@@ -10,10 +10,11 @@ import imutils
 print("Loaded IMUTILS")
 # from tensorflow import keras
 # print("Loaded KERAS")
-import pytesseract
-print("Loaded PYTESSERACT")
-import re
-print("Loaded REGEX")
+
+collect_data = False
+optimize = True
+start_frame_number = 0
+frames_skipped = 20
 
     ########################################################################################
     #################################### VID MANIPULATION ####################################
@@ -34,7 +35,7 @@ class FindPlate:
 
     #should maybe make the parameters global variables or controlled by the command line
     # Have to adjust so that the min and max are larger when analyzing the images and smaller when looking at the vids
-    def __init__(self, counter, check_wait = False, optimize=True, imgAddress = None, img = None):
+    def __init__(self, counter, check_wait = False, imgAddress = None, img = None):
 
         self.check_wait = check_wait    #initializing whether we need to wait between drawing contours for debugging
 
@@ -49,13 +50,13 @@ class FindPlate:
         # imutils.resize(self.img, height = 300, inter=cv.INTER_CUBIC)
 
         if(counter == 0):
-            self.setup_exec(optimize=optimize) #execute the program
+            self.setup_exec() #execute the program
         else:
             self.show_images()                          #Show the images
         self.check_keys()
     
 
-    def setup_exec(self, optimize):
+    def setup_exec(self):
 
         self.settings_init()
 
@@ -187,7 +188,7 @@ class FindPlate:
         cv.imshow(name, image)   #showing and resizing image
         cv.moveWindow(name, 0, 110 * counter - 50)                #Moving the ROI windows into the right spot on the screen
         
-        if len(letters) > 4:
+        if len(letters) > 4 and collect_data:
             TrainNeuralNetwork.label_letter(letters)
             return letters
         else: return None
@@ -408,8 +409,6 @@ if __name__ == "__main__":
         "license_plate_letter_3"
     ]
 
-    start_frame_number = 21000       #the starting frame number in the video
-
     print("\n\nWelcome\nPlease press q to quit the program\nPlease press p to pause and unpause during the video\nPlease press anything else to continue through the images")
     print("\nOnce you have looked at all of the still images, the video will begin\n\n")
     print("Green boxes signify possible license plate regions \nwhile red ones show other ROI's which were picked up and discarded")
@@ -418,15 +417,16 @@ if __name__ == "__main__":
     print("Starting Video @ frame " + str(start_frame_number))
     cap.set(cv.CAP_PROP_POS_FRAMES, start_frame_number) #setting the starting frame number to the correct number
 
-    file_keys = open(training_file_keys, "r")
-    imageNumber = int(file_keys.readline().rstrip())
-    print("INDEX: " + str(imageNumber))
+    if collect_data:
+        file_keys = open(training_file_keys, "r")
+        imageNumber = int(file_keys.readline().rstrip())
+        print("INDEX: " + str(imageNumber))
 
     counter = 0
 
     while(cap.isOpened()):                          #reading and analyzing the video as it runs
         counter = counter + 1
-        counter = counter % 40
+        counter = counter % frames_skipped
         ret, img = cap.read()
         # img = imutils.resize(img, width=900)
         if ret == True:
