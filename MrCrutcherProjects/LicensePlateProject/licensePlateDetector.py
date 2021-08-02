@@ -11,10 +11,14 @@ print("Loaded IMUTILS")
 # from tensorflow import keras
 # print("Loaded KERAS")
 
-collect_data = False
-optimize = True
-start_frame_number = 0
-frames_skipped = 20
+
+            ### GLOBAL VARIABLES FOR THE PROGRAM ###
+            
+collect_data = False        #if true, asks the user for data on what letter is detected. input nothing if image is not a letter or contains more than one letter
+optimize = True             #checks to see whether the user only wants the program to analyze the bottom portion of the vid/image
+start_frame_number = 0      #where does the user want the video to start?
+frames_skipped = 20         #how many frames pass before the frame is analyzed (for instance, analyze every 20th frame if this value is 20)
+
 
     ########################################################################################
     #################################### VID MANIPULATION ####################################
@@ -424,11 +428,10 @@ if __name__ == "__main__":
 
     counter = 0
 
-    while(cap.isOpened()):                          #reading and analyzing the video as it runs
+    while(cap.isOpened()):              #reading and analyzing the video as it runs
         counter = counter + 1
         counter = counter % frames_skipped
         ret, img = cap.read()
-        # img = imutils.resize(img, width=900)
         if ret == True:
             FindPlate(counter=counter, img = img)
         else:
