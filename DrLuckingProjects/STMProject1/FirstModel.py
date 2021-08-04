@@ -8,6 +8,8 @@ from functools import partial
 def train_model(labels, finalArray):
     DefaultConv2D = partial(keras.layers.Conv2D,
                         kernel_size=3, activation='relu', padding="SAME")
+    print(labels.shape)
+    print(finalArray.shape)
     model = keras.models.Sequential([
         #first layer is 64 7x7 filters
         DefaultConv2D(filters=64, kernel_size=7, input_shape=[17, 15, 4]),
@@ -35,6 +37,8 @@ def train_model(labels, finalArray):
     model.compile(loss="sparse_categorical_crossentropy", optimizer="nadam", metrics=["accuracy"])
     history = model.fit(finalArray, labels, epochs=30, validation_data=(finalArray[300:, :, :, :], labels[300:]))
     score = model.evaluate(finalArray[325:, :, :, :], labels[325:])
+
+    print(model.summary())
 
     countTrain = 0
 
