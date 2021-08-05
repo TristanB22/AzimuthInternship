@@ -397,7 +397,6 @@ class NeuralNetwork:
     def __init__(self):
         self.model = model
         self.plate_ret = ""
-        print("Initialized")
 
     def label_letter(imagearr):
         for image in imagearr:
