@@ -4,8 +4,8 @@ import cv2 as cv
 print("Loaded CV")
 import numpy as np
 print("Loaded NP")
-# import tensorflow as tf
-# print("Loaded TF")
+import tensorflow as tf
+print("Loaded TF")
 import imutils
 print("Loaded IMUTILS")
 # from tensorflow import keras
@@ -19,14 +19,24 @@ optimize = True             #checks to see whether the user only wants the progr
 start_frame_number = 0      #where does the user want the video to start?
 frames_skipped = 20         #how many frames pass before the frame is analyzed (for instance, analyze every 20th frame if this value is 20)
 
+folder_path = "/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcherProjects/LicensePlateProject/"
+
+letter_dict = {}
+model = tf.keras.models.load_model(folder_path + "model.h5")
 
     ########################################################################################
-    #################################### VID MANIPULATION ####################################
+    #################################### GENERAL SETUP #####################################
     ########################################################################################
 
 def skip_forward():
     frame_count = cap.get(cv.CAP_PROP_POS_FRAMES)
     cap.set(cv.CAP_PROP_POS_FRAMES, frame_count + 2000)
+
+def setup_dictionary():
+    alphabet = open(folder_path + "alphabet.txt")
+    for count, line in enumerate(alphabet.readlines()):
+        letter_dict[count] = line[0]
+    print(letter_dict)
 
 
 ### Class for plate detection
@@ -173,7 +183,8 @@ class FindPlate:
         thresh = cv.erode(thresh, (81, 61), iterations = 15)
         # thresh = cv.dilate(thresh, (71, 3))
         contours, _ = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-        contours = sorted(contours, key=cv.contourArea, reverse=True)
+        # contours = sorted(contours, key=cv.contourArea, reverse=True)
+        contours = self.sort_contours_left(contours)
         cv.imshow("GRAY {}".format(counter), imutils.resize(thresh, height=200))
 
         image = cv.cvtColor(image, cv.COLOR_GRAY2BGR)
@@ -192,8 +203,9 @@ class FindPlate:
         cv.imshow(name, image)   #showing and resizing image
         cv.moveWindow(name, 0, 110 * counter - 50)                #Moving the ROI windows into the right spot on the screen
         
-        if len(letters) > 4 and collect_data:
-            TrainNeuralNetwork.label_letter(letters)
+        if len(letters) > 4:
+            if collect_data:
+                NeuralNetwork.label_letter(letters)
             return letters
         else: return None
 
@@ -205,7 +217,7 @@ class FindPlate:
 
 
 
-    def sort_contours(self, contours):                   #This sorts the contours based on how far the contours are from the middle of the screen (only looks at the x-pos)
+    def sort_contours_middle(self, contours):                   #This sorts the contours based on how far the contours are from the middle of the screen (only looks at the x-pos)
         rects = []
         for c in contours:
             rects.append((cv.boundingRect(c), c))       #Creating a tuple array with bouding rects and the contours
@@ -227,8 +239,22 @@ class FindPlate:
 
 
 
+    def sort_contours_left(self, contours):                   #This sorts the contours based on how far the contours are from the middle of the screen (only looks at the x-pos)
+        retContourMapping = []
+        for i, contour in enumerate(contours):                     #for every contour, first get the middle part of the bouding box x-pos wise
+            x, _, _, _ = cv.boundingRect(contour)                           #then we take the abs. value of that and sort those values in increasing fashion
+            retContourMapping.append((contour, x, i))
+
+        retContourMapping.sort(key=lambda tup: tup[1])  # sorts in place by distance from vertical horizontal line
+
+        contours = []
+        for contour, _, _ in retContourMapping:
+            contours.append(contour)
+        return contours
+
+
+
     def contour_manipulation(self, contours):
-        # keys = self.sort_contours(contours)            #This is not currently being used -- it would only be used if we wanted to optimize by looking at the 
         checkIndividual = False                         #contours which are in the middle of the screen x-wise. It can also be changed to look at contours close to 
         ret = []                                        #a certain y-val
         self.roi_array = []
@@ -320,7 +346,12 @@ class FindPlate:
         cv.imshow("Bounding Rects", self.img_rects)
         cv.imshow("Canny", imutils.resize(self.Canny, height = height))
 
-        self.analyze_image()
+        data = self.analyze_image()
+        if len(data) > 0:
+            print("")
+            neuralNet = NeuralNetwork()
+            for image_arr in data:
+                print(neuralNet.get_chars_array(image_arr))
         self.show_images()
         self.check_keys()
         
@@ -361,8 +392,11 @@ imageNumber = 0
 training_file_keys ="/Users/tristanbrigham/GithubProjects/AI_Training_Data/LicensePlateProject/training_data.txt"
 char_array = []
 
-class TrainNeuralNetwork:
+class NeuralNetwork:
+    
     def __init__(self):
+        self.model = model
+        self.plate_ret = ""
         print("Initialized")
 
     def label_letter(imagearr):
@@ -390,12 +424,37 @@ class TrainNeuralNetwork:
             training_file.write("\n" + str(letter))
 
 
+
+    def get_chars_array(self, array):
+        ret = ""
+        for image in array:
+            ret += self.predict_char(image)
+        return ret
+
+    def predict_char(self, image):
+        image_formatted = self.setup_array(image)
+        pred = model.predict(image_formatted)
+        return letter_dict[int(np.argmax(pred))]
+
+    def setup_array(self, image):
+        number_array = np.zeros((1, 80, 60, 1), dtype="float32")
+        number_array[0] = image.reshape(80, 60, 1)
+        return number_array
+
+
+
+    def network_summary(self):
+        return self.model.summary()
+
+
     ########################################################################################
     ############################### VID PROCESSING AND SETUP ###############################
     ########################################################################################
 
 
 if __name__ == "__main__":
+
+    setup_dictionary()
 
     #addresses for testing still images on my machine:
     imageAddresses = [
