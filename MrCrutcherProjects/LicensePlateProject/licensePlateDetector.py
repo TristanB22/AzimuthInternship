@@ -19,7 +19,9 @@ optimize = True             #checks to see whether the user only wants the progr
 start_frame_number = 0      #where does the user want the video to start?
 frames_skipped = 20         #how many frames pass before the frame is analyzed (for instance, analyze every 20th frame if this value is 20)
 
+video_path = "/Users/tristanbrigham/Downloads/BostonVid.mp4"
 folder_path = "/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcherProjects/LicensePlateProject/"
+training_data_path = "/Users/tristanbrigham/GithubProjects/AI_Training_Data/LicensePlateProject/"
 
 letter_dict = {}
 model = tf.keras.models.load_model(folder_path + "model.h5")
@@ -177,13 +179,9 @@ class FindPlate:
         image = cv.addWeighted(image, 1.5, regionOfInterest, -0.5, 0)
 
         ret, thresh = cv.threshold(image, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
-        # ret, thresh = cv.threshold(image, self.contour_license_plate, 255, cv.THRESH_BINARY)
-        # thresh = cv.dilate(thresh, (3, 5), iterations = 1)
         thresh = cv.bitwise_not(thresh)
         thresh = cv.erode(thresh, (81, 61), iterations = 15)
-        # thresh = cv.dilate(thresh, (71, 3))
         contours, _ = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-        # contours = sorted(contours, key=cv.contourArea, reverse=True)
         contours = self.sort_contours_left(contours)
         cv.imshow("GRAY {}".format(counter), imutils.resize(thresh, height=200))
 
@@ -216,29 +214,6 @@ class FindPlate:
     ########################################################################################
 
 
-
-    def sort_contours_middle(self, contours):                   #This sorts the contours based on how far the contours are from the middle of the screen (only looks at the x-pos)
-        rects = []
-        for c in contours:
-            rects.append((cv.boundingRect(c), c))       #Creating a tuple array with bouding rects and the contours
-        retContourMapping = []
-
-        for i in range(len(rects)):                     #for every contour, first get the middle part of the bouding box x-pos wise
-            rect, contour = rects[i]                    #Then we are going to subtract that value from the middle of the screen 
-            x, _, w, _ = rect                           #then we take the abs. value of that and sort those values in increasing fashion
-            x = int(self.x / 2) - x                     #If necessary, this would allow us to put a cap on processing and only look at contours in the middle of the screen
-            x = abs(x + int(w/2))
-            retContourMapping.append((i, x, rects[i], contour))
-
-        retContourMapping.sort(key=lambda tup: tup[1])  # sorts in place by distance from vertical horizontal line
-
-        keys = []
-        for index, _, _, _ in retContourMapping:
-            keys.append(index)
-        return keys
-
-
-
     def sort_contours_left(self, contours):                   #This sorts the contours based on how far the contours are from the middle of the screen (only looks at the x-pos)
         retContourMapping = []
         for i, contour in enumerate(contours):                     #for every contour, first get the middle part of the bouding box x-pos wise
@@ -259,9 +234,6 @@ class FindPlate:
         ret = []                                        #a certain y-val
         self.roi_array = []
 
-        # for key in keys:
-        #     c = contours[key]
-        
         for c in contours:
             boolRect = self.check_min_rect(c)
 
@@ -278,6 +250,29 @@ class FindPlate:
                 elif cv.waitKey(0) & 0xFF == ord('q'):  #quits the program
                     exit()
         return ret 
+
+
+
+    ############# NOT BEING USED #############
+    def sort_contours_middle(self, contours):           #This sorts the contours based on how far the contours are from the middle of the screen (only looks at the x-pos)
+        rects = []
+        for c in contours:
+            rects.append((cv.boundingRect(c), c))       #Creating a tuple array with bouding rects and the contours
+        retContourMapping = []
+
+        for i in range(len(rects)):                     #for every contour, first get the middle part of the bouding box x-pos wise
+            rect, contour = rects[i]                    #Then we are going to subtract that value from the middle of the screen 
+            x, _, w, _ = rect                           #then we take the abs. value of that and sort those values in increasing fashion
+            x = int(self.x / 2) - x                     #If necessary, this would allow us to put a cap on processing and only look at contours in the middle of the screen
+            x = abs(x + int(w/2))
+            retContourMapping.append((i, x, rects[i], contour))
+
+        retContourMapping.sort(key=lambda tup: tup[1])  # sorts in place by distance from vertical horizontal line
+
+        keys = []
+        for index, _, _, _ in retContourMapping:
+            keys.append(index)
+        return keys
 
 
 
@@ -327,6 +322,7 @@ class FindPlate:
             return False
 
         return self.rat_check(width, height)
+
 
 
 
@@ -389,8 +385,7 @@ class FindPlate:
     ########################################################################################
 
 imageNumber = 0
-training_file_keys ="/Users/tristanbrigham/GithubProjects/AI_Training_Data/LicensePlateProject/training_data.txt"
-char_array = []
+training_file_keys = training_data_path + "training_data.txt"
 
 class NeuralNetwork:
     
@@ -398,31 +393,38 @@ class NeuralNetwork:
         self.model = model
         self.plate_ret = ""
 
+    ################ TRAINING THE MODEL ################ 
+
     def label_letter(imagearr):
         for image in imagearr:
             print("FRAME COUNT: {}".format(cap.get(cv.CAP_PROP_POS_FRAMES)))
+            
             global imageNumber 
             global training_file_keys
+            
             cv.imshow("POSSIBLE LETTER", image)
             cv.waitKey(1)
+            
             imageNumber = imageNumber + 1
             letter = input("Please input the letter: ").upper()
-            # letter = pytesseract.image_to_string(image).upper()
-            # letter = re.sub(r"\\s+", "", letter)
             hexval = ":".join("{:02x}".format(ord(c)) for c in letter)
+            
             if len(letter) < 1 or hexval == "0c":
                 letter = '_'
             else:
                 letter = letter[0]
-            char_array.append(letter)
-            file = open("/Users/tristanbrigham/GithubProjects/AI_Training_Data/LicensePlateProject/" + str(imageNumber) + ".txt", "w")
+            
+            file = open(training_data_path + str(imageNumber) + ".txt", "w")
+            
             for row in image:
                 np.savetxt(file, row)
+           
             print("Letter passed: " + letter)
             training_file = open(training_file_keys, "a")
             training_file.write("\n" + str(letter))
 
 
+    ################ PREDICTING WITH THE MODEL ################
 
     def get_chars_array(self, array):
         ret = ""
@@ -441,6 +443,7 @@ class NeuralNetwork:
         return number_array
 
 
+    ################ MODEL FUNCTIONS ################
 
     def network_summary(self):
         return self.model.summary()
@@ -475,7 +478,7 @@ if __name__ == "__main__":
     print("\nOnce you have looked at all of the still images, the video will begin\n\n")
     print("Green boxes signify possible license plate regions \nwhile red ones show other ROI's which were picked up and discarded")
     
-    cap = cv.VideoCapture('/Users/tristanbrigham/Downloads/BostonVid.mp4')
+    cap = cv.VideoCapture(video_path)
     print("Starting Video @ frame " + str(start_frame_number))
     cap.set(cv.CAP_PROP_POS_FRAMES, start_frame_number) #setting the starting frame number to the correct number
 
