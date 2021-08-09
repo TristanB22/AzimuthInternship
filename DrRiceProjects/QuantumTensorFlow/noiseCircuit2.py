@@ -102,6 +102,23 @@ def noisyCircuit(probability = 0.1, measure=True, bitStart = False, depolarize=F
     return circuit
 
 
+
+def third_circuit():
+    q0, q1, q2 = cirq.LineQubit.range(3)
+
+    circuit = Cirq.circuit(
+        cirq.CNOT(q0, q1),
+        cirq.CNOT(q0, q2),
+        cirq.CNOT(q0, q1),
+        cirq.CNOT(q0, q2),
+        cirq.CCNOT(q1, q2, q0)
+    )
+
+    return circuit
+
+
+
+
 def run_noisy():
 
     probabilities = [0, 0.01, 0.1, 0.2, 0.3, 0.5]
@@ -150,3 +167,13 @@ def run2_noisy():   #returns 1 if the output after majority voting is 1
 
 def run_circuit():
     run2_noisy()
+
+
+if __name__ == "__main__":
+    print(threeQubitCorrection())
+    print("")
+    print("")
+    print(noisyCircuit(True, True, True, True, True))
+    print("")
+    print("")
+    print(third_circuit())
