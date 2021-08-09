@@ -15,7 +15,7 @@ print("Loaded IMUTILS")
             ### GLOBAL VARIABLES FOR THE PROGRAM ###
             
 collect_data = False        #if true, asks the user for data on what letter is detected. input nothing if image is not a letter or contains more than one letter
-get_chars = False           #if true, applies the algorithm model to the characters that are detected to get what they say from the plate
+get_chars = False           #if true, applies the algorithm model to the characters that are detected to get what the plate says
 optimize = True             #checks to see whether the user only wants the program to analyze the bottom portion of the vid/image
 start_frame_number = 0      #where does the user want the video to start?
 frames_skipped = 20         #how many frames pass before the frame is analyzed (for instance, analyze every 20th frame if this value is 20)
