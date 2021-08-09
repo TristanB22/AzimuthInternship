@@ -103,16 +103,20 @@ def noisyCircuit(probability = 0.1, measure=True, bitStart = False, depolarize=F
 
 
 
-def third_circuit():
+def third_circuit(bitFlip=True, probability=0.3):
     q0, q1, q2 = cirq.LineQubit.range(3)
 
-    circuit = Cirq.circuit(
+    bitFlipInd = 0
+
+    circuit = cirq.Circuit(
         cirq.CNOT(q0, q1),
         cirq.CNOT(q0, q2),
         cirq.CNOT(q0, q1),
         cirq.CNOT(q0, q2),
         cirq.CCNOT(q1, q2, q0)
     )
+    if bitFlip:
+        circuit.insert(bitFlipInd, cirq.Moment([cirq.bit_flip(p=probability).on_each([q0, q1, q2])]))
 
     return circuit
 
