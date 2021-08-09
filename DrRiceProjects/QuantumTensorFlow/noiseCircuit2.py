@@ -16,10 +16,15 @@ class BitAndPhaseFlipChannel(cirq.SingleQubitGate):
     def _circuit_diagram_info_(self, args) -> str:
         return f"BitAndPhaseFlip({self._p})"
 
-def threeQubitCorrection(is_one = False):
+def threeQubitCorrection(is_one = False, error = False):
     q1, q2, q3, q4, q5, extra_qubit = cirq.LineQubit.range(6)
     circuit = cirq.Circuit()
     
+    if error:
+        circuit.insert(0, cirq.Moment([
+            cirq.bit_flip(p=0.3).on_each([q1, q2, q3])
+        ]))
+
     # translates all of the bits into 1's
     if is_one:
         circuit.insert(0, cirq.Moment([
@@ -106,7 +111,7 @@ def noisyCircuit(probability = 0.1, measure=True, bitStart = False, depolarize=F
 def third_circuit(bitFlip=True, probability=0.3):
     q0, q1, q2 = cirq.LineQubit.range(3)
 
-    bitFlipInd = 0
+    bitFlipInd = 2
 
     circuit = cirq.Circuit(
         cirq.CNOT(q0, q1),
@@ -151,8 +156,8 @@ def run_noisy():
             print("\n")
 
 
-def run2_noisy():   #returns 1 if the output after majority voting is 1
-    circuit = threeQubitCorrection(is_one = True)
+def run2_noisy(error=False):   #returns 1 if the output after majority voting is 1
+    circuit = threeQubitCorrection(is_one = True, error=error)
     print(circuit)
     simulator = cirq.DensityMatrixSimulator()
     res = simulator.run(circuit)
@@ -169,15 +174,9 @@ def run2_noisy():   #returns 1 if the output after majority voting is 1
     return output
 
 
-def run_circuit():
-    run2_noisy()
+def run_circuit(error=False):
+    run2_noisy(error=error)
 
 
 if __name__ == "__main__":
-    print(threeQubitCorrection())
-    print("")
-    print("")
-    print(noisyCircuit(True, True, True, True, True))
-    print("")
-    print("")
-    print(third_circuit())
+    run_circuit(error=True)
