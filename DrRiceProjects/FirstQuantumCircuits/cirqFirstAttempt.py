@@ -125,10 +125,10 @@ gatesWith1Input = [gate1, gate2, gate4, gate6]
 gatesWith2Inputs = [gate3, gate5]
 gatesWith3Inputs = [gate8, gate9, gate10, gate11, gate12]
 
-# gatesToRun = gatesWith1Input + gatesWith2Inputs + gatesWith3Inputs
+gatesToRun = gatesWith1Input + gatesWith2Inputs + gatesWith3Inputs
 # gatesToRun = gatesWith1Input
 # gatesToRun = gatesWith2Inputs
-gatesToRun = gatesWith3Inputs
+# gatesToRun = gatesWith3Inputs
 # gatesToRun = [gate12]
 
 count = 1
@@ -143,9 +143,10 @@ for gate in gatesToRun:
     description, circuit = gate(False)
     print("\n{}\n\n{}".format(description, circuit))
 
+    print(gate)
     
-    for state in states3:
-        res = sim.simulate(circuit, initial_state=state)
-        # resRun = sim.run(circuit, repetitions=100)
-        print("\n{}\nRES: {}\nNotation: {}\nDensity Matrix: {}\n".format(bin(state), res, res.dirac_notation(), np.around(res.final_state_vector, 3)))
+    # for state in states3:
+    #     res = sim.simulate(circuit, initial_state=state)
+    #     # resRun = sim.run(circuit, repetitions=100)
+    #     print("\n{}\nRES: {}\nNotation: {}\nDensity Matrix: {}\n".format(bin(state), res, res.dirac_notation(), np.around(res.final_state_vector, 3)))
     count = count + 1

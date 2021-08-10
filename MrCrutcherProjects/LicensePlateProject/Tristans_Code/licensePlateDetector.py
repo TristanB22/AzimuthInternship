@@ -17,11 +17,12 @@ print("Loaded IMUTILS")
 collect_data = False        #if true, asks the user for data on what letter is detected. input nothing if image is not a letter or contains more than one letter
 get_chars = False           #if true, applies the algorithm model to the characters that are detected to get what the plate says
 optimize = True             #checks to see whether the user only wants the program to analyze the bottom portion of the vid/image
+debug = False               #if true, shows the gray ROI's and the license plate ROI's
 start_frame_number = 0      #where does the user want the video to start?
 frames_skipped = 20         #how many frames pass before the frame is analyzed (for instance, analyze every 20th frame if this value is 20)
 
 video_path = "/Users/tristanbrigham/Downloads/BostonVid.mp4"
-folder_path = "/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcherProjects/LicensePlateProject/"
+folder_path = "/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcherProjects/LicensePlateProject/Tristans_Code/"
 training_data_path = "/Users/tristanbrigham/GithubProjects/AI_Training_Data/LicensePlateProject/"
 
 letter_dict = {}
@@ -112,7 +113,7 @@ class FindPlate:
         self.img_size = self.img.shape[0] * self.img.shape[1]
 
         #current size: about 240,000 pixels
-        self.area_min = int(self.img_size / 1380)      #minimum area of the accepted bounding boxes -- it recognizes plates with smaller values but there is no way that characters can be picked out. No use to have smaller
+        self.area_min = int(self.img_size / 5000)      #minimum area of the accepted bounding boxes -- it recognizes plates with smaller values but there is no way that characters can be picked out. No use to have smaller
         self.area_max = int(self.img_size / 600)     #max area of the accepted bounding boxes
 
         self.lower_canny = 110    #upper value for canny thresholding
@@ -184,7 +185,6 @@ class FindPlate:
         thresh = cv.erode(thresh, (81, 61), iterations = 15)
         contours, _ = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         contours = self.sort_contours_left(contours)
-        cv.imshow("GRAY {}".format(counter), imutils.resize(thresh, height=200))
 
         image = cv.cvtColor(image, cv.COLOR_GRAY2BGR)
 
@@ -199,7 +199,9 @@ class FindPlate:
                 letterImage = cv.resize(letterInterest, (60, 80))
                 letters.append(letterImage)
 
-        cv.imshow(name, image)   #showing and resizing image
+        if debug:
+            cv.imshow("GRAY {}".format(counter), imutils.resize(thresh, height=200))
+            cv.imshow(name, image)   #showing and resizing image
         cv.moveWindow(name, 0, 110 * counter - 50)                #Moving the ROI windows into the right spot on the screen
         
         if len(letters) > 4:
@@ -294,7 +296,7 @@ class FindPlate:
             self.roi_array.append(brect)
             return True                                 #if everything is right, then return the contour and true to show that it is valid
         else:
-            # cv.drawContours(self.img_rects,[box], 0, (0, 0, 255), 1)
+            cv.drawContours(self.img_rects,[box], 0, (0, 0, 255), 1)
             return False                          #else, return the contour and false
 
 
@@ -396,7 +398,7 @@ class NeuralNetwork:
 
     ################ TRAINING THE MODEL ################ 
 
-    def label_letter(imagearr):
+    def label_letter(self, imagearr):
         for image in imagearr:
             print("FRAME COUNT: {}".format(cap.get(cv.CAP_PROP_POS_FRAMES)))
             

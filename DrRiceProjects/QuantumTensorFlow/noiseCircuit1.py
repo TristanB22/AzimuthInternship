@@ -1,6 +1,8 @@
 import cirq
 import numpy as np
 
+keys_measure = ["A", "B", "C", "D"]
+
 class BitAndPhaseFlipChannel(cirq.SingleQubitGate):
     def __init__(self, p: float) -> None:
         self._p = p
@@ -52,10 +54,10 @@ def noisyCircuit(probability = 0.1, measure=True, bitStart = False, depolarize=F
 
     if measure:
         circuit.insert(measureInd, cirq.Moment([        
-            cirq.measure(q0, key='m0'), 
-            cirq.measure(q1, key='m1'), 
-            cirq.measure(q2, key='m2'), 
-            cirq.measure(q3, key='m3'), 
+            cirq.measure(q0, key=keys_measure[0]), 
+            cirq.measure(q1, key=keys_measure[1]), 
+            cirq.measure(q2, key=keys_measure[2]), 
+            cirq.measure(q3, key=keys_measure[3]), 
             ]))
 
     if bitEnd:
@@ -68,7 +70,6 @@ def noisyCircuit(probability = 0.1, measure=True, bitStart = False, depolarize=F
 
 probabilities = [0, 0.01, 0.1, 0.2, 0.3, 0.5]
 iterations = 10000
-keys_measure = ["m0", "m1", "m2", "m3"]
 configurations = [(True, False, False, False, False), (True, True, False, False, False), (True, False, True, False, False), (True, False, False, True, False)]
 # measure, bitstart, depolarize, bitphase, cbitflip
 
@@ -85,9 +86,9 @@ for config in configurations:
 
         result = sim.run(circuit, repetitions=iterations)
 
-        print("A: {} | PROB OF GETTING ONE: %{}".format(result.histogram(key='m0'), round(100 * result.histogram(key='m0')[1] / iterations)))
-        print("B: {} | PROB OF GETTING ONE: %{}".format(result.histogram(key='m1'), round(100 * result.histogram(key='m1')[1] / iterations)))
-        print("C: {} | PROB OF GETTING ONE: %{}".format(result.histogram(key='m2'), round(100 * result.histogram(key='m2')[1] / iterations)))
-        print("D: {} | PROB OF GETTING ONE: %{}".format(result.histogram(key='m3'), round(100 * result.histogram(key='m3')[1] / iterations)))
+        print("A: {} | PROB OF GETTING ONE: %{}".format(result.histogram(key=keys_measure[0]), round(100 * result.histogram(key=keys_measure[0])[1] / iterations)))
+        print("B: {} | PROB OF GETTING ONE: %{}".format(result.histogram(key=keys_measure[1]), round(100 * result.histogram(key=keys_measure[1])[1] / iterations)))
+        print("C: {} | PROB OF GETTING ONE: %{}".format(result.histogram(key=keys_measure[2]), round(100 * result.histogram(key=keys_measure[2])[1] / iterations)))
+        print("D: {} | PROB OF GETTING ONE: %{}".format(result.histogram(key=keys_measure[3]), round(100 * result.histogram(key=keys_measure[3])[1] / iterations)))
         print("\n")
 
