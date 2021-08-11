@@ -4,7 +4,7 @@ import cv2 as cv
 print("Loaded CV")
 import numpy as np
 print("Loaded NP")
-import tensorflow as tf
+# import tensorflow as tf
 print("Loaded TF")
 import imutils
 print("Loaded IMUTILS")
@@ -26,7 +26,7 @@ folder_path = "/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcher
 training_data_path = "/Users/tristanbrigham/GithubProjects/AI_Training_Data/LicensePlateProject/"
 
 letter_dict = {}
-model = tf.keras.models.load_model(folder_path + "model.h5")
+# model = tf.keras.models.load_model(folder_path + "model.h5")
 
     ########################################################################################
     #################################### GENERAL SETUP #####################################
@@ -161,9 +161,10 @@ class FindPlate:
         letterArrays = []
 
         #SHOWING THE ROI's
-        for count, regionOfInterest in enumerate(self.roi_array):
+        for count, (regionOfInterest, rx, ry, rw, rh) in enumerate(self.roi_array):
             data = self.process_ROI(regionOfInterest, count)
             if data is not None:
+                cv.rectangle(self.img_rects, (rx, ry), (rx + rw, ry + rh), (0, 255, 0), thickness=4)
                 letterArrays.append(data)
         
         return letterArrays
@@ -291,12 +292,12 @@ class FindPlate:
         box = np.int0(box)                              #for drawing the min area rectangles
         rx, ry, rw, rh = cv.boundingRect(contour)
         if self.validateRatio(rect, rw, rh):
-            cv.drawContours(self.img_rects,[box], 0, (0, 255, 0), 4)
+            # cv.drawContours(self.img_rects,[box], 0, (0, 255, 0), 4)
             brect = self.img[ry : ry + rh, rx : rx + rw]
-            self.roi_array.append(brect)
+            self.roi_array.append((brect, rx, ry, rw, rh))
             return True                                 #if everything is right, then return the contour and true to show that it is valid
         else:
-            cv.drawContours(self.img_rects,[box], 0, (0, 0, 255), 1)
+            # cv.drawContours(self.img_rects,[box], 0, (0, 0, 255), 1)
             return False                          #else, return the contour and false
 
 
