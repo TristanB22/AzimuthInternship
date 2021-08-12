@@ -495,18 +495,11 @@ if __name__ == "__main__":
 
     #addresses for testing still images on my machine:
     imageAddresses = [
-        "licensePlate.jpeg",
-        "licensePlate2.jpeg",
-        "licensePlate3.jpeg",
-        "licensePlate4.jpeg",
-        "licensePlate5.jpeg"
-    ]
-
-    imageAddresses2 = [
-        "license_plate_letter_0",
-        "license_plate_letter_1",
-        "license_plate_letter_2",
-        "license_plate_letter_3"
+        "kerasModelandData/licensePlate.jpeg",
+        "kerasModelandData/licensePlate2.jpeg",
+        "kerasModelandData/licensePlate3.jpeg",
+        "kerasModelandData/licensePlate4.jpeg",
+        "kerasModelandData/licensePlate5.jpeg"
     ]
 
     print("\n\nWelcome\nPlease press q to quit the program\nPlease press p to pause and unpause during the video\nPlease press anything else to continue through the images")
