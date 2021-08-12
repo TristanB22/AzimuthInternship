@@ -135,8 +135,7 @@ class FindPlate:
 
     def run(self):                                      #master run function for the program
         _ = self.contour_manipulation(self.preprocess_canny_contours())
-        data = self.analyze_image()
-        self.print_characters(data)
+        license_plate_arr = self.analyze_image()
 
 
 
@@ -159,15 +158,6 @@ class FindPlate:
             if checkIndividual:                         #if the check individual option is on, then go through the contours one-by-one, write them to the image, and show the image
                 checkIndividual = self.check_indiv_contour(c)
         return ret 
-
-
-
-    def get_chars(self, data):
-        if len(data) > 0 and get_chars:
-            print("")
-            neuralNet = NeuralNetwork()
-            for image_arr in data:
-                print(neuralNet.get_chars_array(image_arr))
 
 
 
@@ -195,7 +185,7 @@ class FindPlate:
 
 
     ########################################################################################
-    ################################### ANALYZING IMAGES ###################################
+    ############################# ANALYZING/ANNOTATING IMAGES ##############################
     ########################################################################################
 
 
@@ -214,20 +204,32 @@ class FindPlate:
 
 
     def analyze_image(self):        # getting an array of the potential letters from each license plate ROI
-        letterArrays = []
+        str_arr = []
 
         #SHOWING THE ROI's
         for count, (regionOfInterest, x, y, w, h) in enumerate(self.roi_array):
             data = self.process_ROI(regionOfInterest, count)
-            if data is not None:
-                cv.rectangle(self.img_rects, (x, y), (x + w, y + h), (0, 255, 0), thickness=4)
-                print("X: {} Y: {} W: {} H: {}".format(x, y, w, h))
-                letterArrays.append(data)
+            if data is not None and get_chars:
+                str_arr.append(self.show_bounds_and_text(data, x, y, w, h))
         
-        return letterArrays
+        return str_arr
+    
 
 
+    def show_bounds_and_text(self, data, x, y, w, h):
+        ret_str = ""
+        cv.rectangle(self.img_rects, (x, y), (x + w, y + h), (0, 255, 0), thickness=4)
 
+        neuralNet = NeuralNetwork()
+        text_arr = neuralNet.get_chars_array(data)
+        for chr in text_arr:
+            ret_str += chr
+        cv.putText(self.img_rects, ret_str, (x, y - 5), cv.FONT_HERSHEY_DUPLEX, .8, (0, 255, 0))
+
+        return ret_str
+
+
+    
     ########################################################################################
     ################################### CHECKING CONTOURS ##################################
     ########################################################################################
