@@ -224,7 +224,7 @@ class FindPlate:
         text_arr = neuralNet.get_chars_array(data)
         for chr in text_arr:
             ret_str += chr
-        cv.putText(self.img_rects, ret_str, (x, y - 5), cv.FONT_HERSHEY_DUPLEX, .8, (0, 255, 0))
+        cv.putText(self.img_rects, ret_str, (x, y - 5), cv.FONT_HERSHEY_DUPLEX, 1, (0, 255, 0))
 
         return ret_str
 
