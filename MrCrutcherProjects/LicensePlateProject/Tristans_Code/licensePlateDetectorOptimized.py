@@ -4,7 +4,7 @@ import cv2 as cv
 print("Loaded CV")
 import numpy as np
 print("Loaded NP")
-# import tensorflow as tf
+import tensorflow as tf
 print("Loaded TF")
 import imutils
 print("Loaded IMUTILS")
@@ -15,10 +15,10 @@ print("Loaded IMUTILS")
             ### GLOBAL VARIABLES FOR THE PROGRAM ###
             
 collect_data = False        #if true, asks the user for data on what letter is detected. input nothing if image is not a letter or contains more than one letter
-get_chars = False           #if true, applies the algorithm model to the characters that are detected to get what the plate says
+get_chars = True           #if true, applies the algorithm model to the characters that are detected to get what the plate says
 optimize = True             #checks to see whether the user only wants the program to analyze the bottom portion of the vid/image
-debug = False               #if true, shows the gray ROI's and the license plate ROI's
-start_frame_number = 0      #where does the user want the video to start?
+debug = True               #if true, shows the gray ROI's and the license plate ROI's
+start_frame_number = 300      #where does the user want the video to start?
 frames_skipped = 20         #how many frames pass before the frame is analyzed (for instance, analyze every 20th frame if this value is 20)
 
 video_path = "/Users/tristanbrigham/Downloads/BostonVid.mp4"
@@ -26,7 +26,7 @@ folder_path = "/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcher
 training_data_path = "/Users/tristanbrigham/GithubProjects/AI_Training_Data/LicensePlateProject/"
 
 letter_dict = {}
-# model = tf.keras.models.load_model(folder_path + "model.h5")
+model = tf.keras.models.load_model(folder_path + "model.h5")
 
     ########################################################################################
     #################################### GENERAL SETUP #####################################
@@ -135,6 +135,62 @@ class FindPlate:
 
     def run(self):                                      #master run function for the program
         _ = self.contour_manipulation(self.preprocess_canny_contours())
+        data = self.analyze_image()
+        self.print_characters(data)
+
+
+
+    ########################################################################################
+    #################################### EXECUTE PROGRAM ###################################
+    ########################################################################################
+
+
+
+    def contour_manipulation(self, contours):
+        checkIndividual = False                         #contours which are in the middle of the screen x-wise. It can also be changed to look at contours close to 
+        ret = []                                        #a certain y-val
+
+        for c in contours:
+            boolRect = self.check_min_rect(c)
+
+            if boolRect:
+                ret.append(c)
+            
+            if checkIndividual:                         #if the check individual option is on, then go through the contours one-by-one, write them to the image, and show the image
+                checkIndividual = self.check_indiv_contour(c)
+        return ret 
+
+
+
+    def get_chars(self, data):
+        if len(data) > 0 and get_chars:
+            print("")
+            neuralNet = NeuralNetwork()
+            for image_arr in data:
+                print(neuralNet.get_chars_array(image_arr))
+
+
+
+    def show_images_exec(self, height = 300):
+        # cv.imshow("Contours", imutils.resize(self.img_copy, height = height))
+        
+        cv.imshow("Bounding Rects", self.img_rects)
+        cv.imshow("Canny", imutils.resize(self.Canny, height = height))
+
+        self.show_images()
+        self.check_keys()
+
+
+
+    def check_indiv_contour(self, c):
+        print("\n\nCONTOUR: {}".format(cv.contourArea(c)))
+        cv.imshow("Bounding Rects", self.img_rects)
+        if cv.waitKey(0) & 0xFF == ord('c'):    #This cycles through to the next contour
+            return True
+        elif cv.waitKey(0) & 0xFF == ord('f'):  #This makes it so that the rest of the contours are drawn in an instant
+            return False
+        elif cv.waitKey(0) & 0xFF == ord('q'):  #quits the program
+            exit()
 
 
 
@@ -161,15 +217,23 @@ class FindPlate:
         letterArrays = []
 
         #SHOWING THE ROI's
-        for count, (regionOfInterest, rx, ry, rw, rh) in enumerate(self.roi_array):
+        for count, (regionOfInterest, x, y, w, h) in enumerate(self.roi_array):
             data = self.process_ROI(regionOfInterest, count)
             if data is not None:
-                cv.rectangle(self.img_rects, (rx, ry), (rx + rw, ry + rh), (0, 255, 0), thickness=4)
+                cv.rectangle(self.img_rects, (x, y), (x + w, y + h), (0, 255, 0), thickness=4)
+                print("X: {} Y: {} W: {} H: {}".format(x, y, w, h))
                 letterArrays.append(data)
         
         return letterArrays
 
 
+
+    ########################################################################################
+    ################################### CHECKING CONTOURS ##################################
+    ########################################################################################
+    
+    
+    
     def process_ROI(self, roi, counter):
         regionOfInterest = roi[int(roi.shape[0] / 4) : roi.shape[0] - int(roi.shape[0] / 5), int(roi.shape[1] / 18) : roi.shape[1] - int(roi.shape[1] / 18)] #
         name = "ROI {}".format(counter)                           #format the name
@@ -181,7 +245,7 @@ class FindPlate:
         image = cv.GaussianBlur(regionOfInterest, (0, 0), 3)
         image = cv.addWeighted(image, 1.5, regionOfInterest, -0.5, 0)
 
-        ret, thresh = cv.threshold(image, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
+        _, thresh = cv.threshold(image, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
         thresh = cv.bitwise_not(thresh)
         thresh = cv.erode(thresh, (81, 61), iterations = 15)
         contours, _ = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
@@ -194,8 +258,6 @@ class FindPlate:
             if cv.contourArea(contour) > self.letter_contour_min:
                 x, y, w, h = cv.boundingRect(contour)
                 letterInterest = thresh[0 : y + h, x : x + w]
-                # cv.imshow("Letter {}".format(count), imutils.resize(letterInterest, height = 100))
-                # cv.moveWindow("Letter {}".format(count), 600, 110 * count)
                 cv.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0))
                 letterImage = cv.resize(letterInterest, (60, 80))
                 letters.append(letterImage)
@@ -205,84 +267,11 @@ class FindPlate:
             cv.imshow(name, image)   #showing and resizing image
         cv.moveWindow(name, 0, 110 * counter - 50)                #Moving the ROI windows into the right spot on the screen
         
-        if len(letters) > 4:
+        if len(letters) > 4:                            #if atleast four letters are detected, then return the array
             if collect_data:
                 NeuralNetwork.label_letter(letters)
             return letters
         else: return None
-
-
-
-    ########################################################################################
-    #################################### CONTOUR SORTING ###################################
-    ########################################################################################
-
-
-    def sort_contours_left(self, contours):                   #This sorts the contours based on how far the contours are from the middle of the screen (only looks at the x-pos)
-        retContourMapping = []
-        for i, contour in enumerate(contours):                     #for every contour, first get the middle part of the bouding box x-pos wise
-            x, _, _, _ = cv.boundingRect(contour)                           #then we take the abs. value of that and sort those values in increasing fashion
-            retContourMapping.append((contour, x, i))
-
-        retContourMapping.sort(key=lambda tup: tup[1])  # sorts in place by distance from vertical horizontal line
-
-        contours = []
-        for contour, _, _ in retContourMapping:
-            contours.append(contour)
-        return contours
-
-
-
-    def contour_manipulation(self, contours):
-        checkIndividual = False                         #contours which are in the middle of the screen x-wise. It can also be changed to look at contours close to 
-        ret = []                                        #a certain y-val
-        self.roi_array = []
-
-        for c in contours:
-            boolRect = self.check_min_rect(c)
-
-            if boolRect:
-                ret.append(c)
-            
-            if checkIndividual:                         #if the check individual option is on, then go through the contours one-by-one, write them to the image, and show the image
-                print("\n\nCONTOUR: {}".format(cv.contourArea(c)))
-                cv.imshow("Bounding Rects", self.img_rects)
-                if cv.waitKey(0) & 0xFF == ord('c'):    #This cycles through to the next contour
-                    continue
-                elif cv.waitKey(0) & 0xFF == ord('f'):  #This makes it so that the rest of the contours are drawn in an instant
-                    checkIndividual = False
-                elif cv.waitKey(0) & 0xFF == ord('q'):  #quits the program
-                    exit()
-        return ret 
-
-
-
-    ############# NOT BEING USED #############
-    def sort_contours_middle(self, contours):           #This sorts the contours based on how far the contours are from the middle of the screen (only looks at the x-pos)
-        rects = []
-        for c in contours:
-            rects.append((cv.boundingRect(c), c))       #Creating a tuple array with bouding rects and the contours
-        retContourMapping = []
-
-        for i in range(len(rects)):                     #for every contour, first get the middle part of the bouding box x-pos wise
-            rect, contour = rects[i]                    #Then we are going to subtract that value from the middle of the screen 
-            x, _, w, _ = rect                           #then we take the abs. value of that and sort those values in increasing fashion
-            x = int(self.x / 2) - x                     #If necessary, this would allow us to put a cap on processing and only look at contours in the middle of the screen
-            x = abs(x + int(w/2))
-            retContourMapping.append((i, x, rects[i], contour))
-
-        retContourMapping.sort(key=lambda tup: tup[1])  # sorts in place by distance from vertical horizontal line
-
-        keys = []
-        for index, _, _, _ in retContourMapping:
-            keys.append(index)
-        return keys
-
-
-
-    ########################################################################################
-    ################################### CHECKING CONTOURS ##################################
-    ########################################################################################
 
 
 
@@ -292,12 +281,10 @@ class FindPlate:
         box = np.int0(box)                              #for drawing the min area rectangles
         rx, ry, rw, rh = cv.boundingRect(contour)
         if self.validateRatio(rect, rw, rh):
-            # cv.drawContours(self.img_rects,[box], 0, (0, 255, 0), 4)
             brect = self.img[ry : ry + rh, rx : rx + rw]
             self.roi_array.append((brect, rx, ry, rw, rh))
             return True                                 #if everything is right, then return the contour and true to show that it is valid
         else:
-            # cv.drawContours(self.img_rects,[box], 0, (0, 0, 255), 1)
             return False                          #else, return the contour and false
 
 
@@ -340,23 +327,7 @@ class FindPlate:
         # self.check_keys()                                           #kind of inefficient to be checking the keys every time, but otherwise the program is unresponsive
 
 
-    def show_images_exec(self, height = 300):
-        # cv.imshow("Contours", imutils.resize(self.img_copy, height = height))
-        cv.imshow("Bounding Rects", self.img_rects)
-        cv.imshow("Canny", imutils.resize(self.Canny, height = height))
-
-        data = self.analyze_image()
-        if len(data) > 0 and get_chars:
-            print("")
-            neuralNet = NeuralNetwork()
-            for image_arr in data:
-                print(neuralNet.get_chars_array(image_arr))
-        self.show_images()
-        self.check_keys()
-        
-
-
-
+    
     def check_keys(self):
         if self.check_wait:                                   #if going through the contours, check if q is pressed
             key = cv.waitKey(0) & 0xFF
@@ -379,6 +350,50 @@ class FindPlate:
                         exit(0)
                     elif key == ord('s'):
                         skip_forward()
+
+
+
+    ########################################################################################
+    #################################### CONTOUR SORTING ###################################
+    ########################################################################################
+
+
+    def sort_contours_left(self, contours):                   #This sorts the contours based on how far the contours are from the middle of the screen (only looks at the x-pos)
+        retContourMapping = []
+        for i, contour in enumerate(contours):                     #for every contour, first get the middle part of the bouding box x-pos wise
+            x, _, _, _ = cv.boundingRect(contour)                           #then we take the abs. value of that and sort those values in increasing fashion
+            retContourMapping.append((contour, x, i))
+
+        retContourMapping.sort(key=lambda tup: tup[1])  # sorts in place by distance from vertical horizontal line
+
+        contours = []
+        for contour, _, _ in retContourMapping:
+            contours.append(contour)
+        return contours
+
+
+
+    ############# NOT BEING USED #############
+    def sort_contours_middle(self, contours):           #This sorts the contours based on how far the contours are from the middle of the screen (only looks at the x-pos)
+        rects = []
+        for c in contours:
+            rects.append((cv.boundingRect(c), c))       #Creating a tuple array with bouding rects and the contours
+        retContourMapping = []
+
+        for i in range(len(rects)):                     #for every contour, first get the middle part of the bouding box x-pos wise
+            rect, contour = rects[i]                    #Then we are going to subtract that value from the middle of the screen 
+            x, _, w, _ = rect                           #then we take the abs. value of that and sort those values in increasing fashion
+            x = int(self.x / 2) - x                     #If necessary, this would allow us to put a cap on processing and only look at contours in the middle of the screen
+            x = abs(x + int(w/2))
+            retContourMapping.append((i, x, rects[i], contour))
+
+        retContourMapping.sort(key=lambda tup: tup[1])  # sorts in place by distance from vertical horizontal line
+
+        keys = []
+        for index, _, _, _ in retContourMapping:
+            keys.append(index)
+        return keys
+
 
 
 
