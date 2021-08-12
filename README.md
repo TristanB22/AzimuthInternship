@@ -1,2 +1,9 @@
-# More Code .. More Problems
-This repo is to record work and changes. 
+# More Code... More Problems
+
+This repository compiles all of the code which I wrote during my internship in the Azimuth Corporation's AAIM Lab. All of the code is mine outside of two folders --
+Mr_Crutcher_Code (located in /MrCrutcherProjects/LicensePlateProject/) and Dr_Lucking_Code (located in /DrLuckingProjects/).
+
+I would sincerely like to thank Mr. Crutcher, Dr. Lucking, Dr. Rice, and Mr. Nelson for their help during my internship. I would also like to extend my gratitude to the entire Azimuth Corproation for taking a chance on a highschool student and allowing me to intern at the company. This has been an incredibly eye-opening
+experience and I am glad that I was able to provide value to the organization.
+
+For information about the AAIM Lab please visit the Azimuth Corporation's website [here](https://www.azimuth-corp.com/). 
