@@ -8,8 +8,27 @@ import tensorflow as tf
 print("Loaded TF")
 import imutils
 print("Loaded IMUTILS")
-# from tensorflow import keras
-# print("Loaded KERAS")
+import os
+print("Loaded OS")
+
+'''
+
+SOME NOTES ABOUT THE PROGRAM:
+
+1) Make sure to change the paths at the top of the file to reflect the correct paths to your files
+2) The program is slow right now. I am working on improvements
+3) All togglable settings are at the top of the file and in the __init__ / settings_init functions of the FindPlate class
+
+Have fun!! :)
+
+'''
+
+
+### CHANGE THESE PATHS ###
+#the paths below are the paths that work on my machine!!
+video_path = "/Users/tristanbrigham/Downloads/BostonVid.mp4"
+folder_path = os.getcwd() + "/MrCrutcherProjects/LicensePlateProject/Tristans_Code/"
+training_data_path = "/Users/tristanbrigham/GithubProjects/AI_Training_Data/LicensePlateProject/"
 
 
             ### GLOBAL VARIABLES FOR THE PROGRAM ###
@@ -17,16 +36,12 @@ print("Loaded IMUTILS")
 collect_data = False        #if true, asks the user for data on what letter is detected. input nothing if image is not a letter or contains more than one letter
 get_chars = True           #if true, applies the algorithm model to the characters that are detected to get what the plate says
 optimize = True             #checks to see whether the user only wants the program to analyze the bottom portion of the vid/image
-debug = True               #if true, shows the gray ROI's and the license plate ROI's
+debug = False               #if true, shows the gray ROI's and the license plate ROI's
 start_frame_number = 300      #where does the user want the video to start?
 frames_skipped = 20         #how many frames pass before the frame is analyzed (for instance, analyze every 20th frame if this value is 20)
 
-video_path = "/Users/tristanbrigham/Downloads/BostonVid.mp4"
-folder_path = "/Users/tristanbrigham/GithubProjects/AzimuthInternship/MrCrutcherProjects/LicensePlateProject/Tristans_Code/"
-training_data_path = "/Users/tristanbrigham/GithubProjects/AI_Training_Data/LicensePlateProject/"
-
 letter_dict = {}
-model = tf.keras.models.load_model(folder_path + "model.h5")
+model = tf.keras.models.load_model(folder_path + "kerasModelandData/model.h5")
 
     ########################################################################################
     #################################### GENERAL SETUP #####################################
@@ -37,7 +52,7 @@ def skip_forward():
     cap.set(cv.CAP_PROP_POS_FRAMES, frame_count + 2000)
 
 def setup_dictionary():
-    alphabet = open(folder_path + "alphabet.txt")
+    alphabet = open(folder_path + "kerasModelandData/alphabet.txt")
     for count, line in enumerate(alphabet.readlines()):
         letter_dict[count] = line[0]
     print(letter_dict)
@@ -124,7 +139,7 @@ class FindPlate:
         self.aspect_min = 0.3    #the minimum amount of area that a license plate can cover within a bounding box to be considered
 
         self.img_dilate = 40    #specifying the value that the pixels which are being brightened will be increased by
-        self.blur = (5, 5)    #initializing the size component of the gaussian blur that is applied to the image
+        self.blur = (9, 9)    #initializing the size component of the gaussian blur that is applied to the image
         self.offset = 0         #initializing the variable which keeps track of how far from the top of the image the program begins to analyze
         self.top_img = None     #initializing the variable which may hold the top part of the image for later
         self.element_structure = cv.getStructuringElement(shape=cv.MORPH_RECT, ksize=(5, 5)) #basic elem structure for blurring
@@ -267,7 +282,7 @@ class FindPlate:
         if debug:
             cv.imshow("GRAY {}".format(counter), imutils.resize(thresh, height=200))
             cv.imshow(name, image)   #showing and resizing image
-        cv.moveWindow(name, 0, 110 * counter - 50)                #Moving the ROI windows into the right spot on the screen
+            cv.moveWindow(name, 0, 110 * counter - 50)                #Moving the ROI windows into the right spot on the screen
         
         if len(letters) > 4:                            #if atleast four letters are detected, then return the array
             if collect_data:
