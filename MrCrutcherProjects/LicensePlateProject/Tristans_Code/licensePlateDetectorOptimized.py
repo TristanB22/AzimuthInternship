@@ -38,7 +38,7 @@ collect_data = False        #if true, asks the user for data on what letter is d
 get_chars = True            #if true, applies the algorithm model to the characters that are detected to get what the plate says
 optimize = True             #checks to see whether the user only wants the program to analyze the bottom portion of the vid/image
 debug = False               #if true, shows the gray ROI's and the license plate ROI's
-start_frame_number = 16500    #where does the user want the video to start?
+start_frame_number = 0      #where does the user want the video to start?
 frames_skipped = 30         #how many frames pass before the frame is analyzed (for instance, analyze every 20th frame if this value is 20)
 
 letter_dict = {}
