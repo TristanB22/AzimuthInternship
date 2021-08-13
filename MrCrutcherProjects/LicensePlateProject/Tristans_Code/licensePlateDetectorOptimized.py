@@ -32,13 +32,14 @@ training_data_path = "/Users/tristanbrigham/GithubProjects/AI_Training_Data/Lice
 
 
             ### GLOBAL VARIABLES FOR THE PROGRAM ###
-            
+
+show_images_bool = True     #if true, shows the images that are being processed           
 collect_data = False        #if true, asks the user for data on what letter is detected. input nothing if image is not a letter or contains more than one letter
-get_chars = True           #if true, applies the algorithm model to the characters that are detected to get what the plate says
+get_chars = True            #if true, applies the algorithm model to the characters that are detected to get what the plate says
 optimize = True             #checks to see whether the user only wants the program to analyze the bottom portion of the vid/image
 debug = False               #if true, shows the gray ROI's and the license plate ROI's
-start_frame_number = 300      #where does the user want the video to start?
-frames_skipped = 20         #how many frames pass before the frame is analyzed (for instance, analyze every 20th frame if this value is 20)
+start_frame_number = 16500    #where does the user want the video to start?
+frames_skipped = 30         #how many frames pass before the frame is analyzed (for instance, analyze every 20th frame if this value is 20)
 
 letter_dict = {}
 model = tf.keras.models.load_model(folder_path + "kerasModelandData/model.h5")
@@ -49,7 +50,7 @@ model = tf.keras.models.load_model(folder_path + "kerasModelandData/model.h5")
 
 def skip_forward():
     frame_count = cap.get(cv.CAP_PROP_POS_FRAMES)
-    cap.set(cv.CAP_PROP_POS_FRAMES, frame_count + 2000)
+    cap.set(cv.CAP_PROP_POS_FRAMES, frame_count + 1000)
 
 def setup_dictionary():
     alphabet = open(folder_path + "kerasModelandData/alphabet.txt")
@@ -84,7 +85,7 @@ class FindPlate:
 
         if(counter == 0):
             self.setup_exec() #execute the program
-        else:
+        elif show_images_bool:
             self.show_images()                          #Show the images
         self.check_keys()
     
@@ -109,7 +110,8 @@ class FindPlate:
             self.img = np.append(self.top_img, self.img, axis=0)
             self.img_rects = np.append(self.top_img, self.img_rects, axis=0)
         
-        self.show_images_exec()
+        if show_images_bool:
+            self.show_images_exec()
 
 
 
@@ -358,7 +360,7 @@ class FindPlate:
             elif key == ord('s'):
                 skip_forward()
             elif key & 0xFF == ord('p'):                # this creates a pause button for the video, in essence
-                print("VIDEO PAUSED")
+                print("VIDEO PAUSED @ FRAME {}".format(cap.get(cv.CAP_PROP_POS_FRAMES)))
                 while True:
                     key = cv.waitKey(25) & 0xFF
                     if key == ord('p'):                 #unpause
