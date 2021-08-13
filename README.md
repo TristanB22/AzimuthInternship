@@ -8,6 +8,13 @@ experience and I am glad that I was able to provide value to the organization.__
 
 __For information about the AAIM Lab please visit the Azimuth Corporation's website [here](https://www.azimuth-corp.com/).__ 
 
+### Topics Covered in the Internship:
+- Machine Learning
+- Computer Vision
+- Quantum Computing
+- Quantum Computing Error Correction
+- Scanning Tunneling Microscope Error-Detection
+
 A screenshot taken from the license plate project:
 
 ![plates](/_images/3Plates.png)
