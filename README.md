@@ -10,4 +10,4 @@ __For information about the AAIM Lab please visit the Azimuth Corporation's webs
 
 A screenshot taken from the license plate project:
 
-![plates](/_images/licensePlates.png)
+![plates](/_images/3Plates.png)
