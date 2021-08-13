@@ -7,3 +7,7 @@ I would sincerely like to thank Mr. Crutcher, Dr. Lucking, Dr. Rice, and Mr. Nel
 experience and I am glad that I was able to provide value to the organization.
 
 For information about the AAIM Lab please visit the Azimuth Corporation's website [here](https://www.azimuth-corp.com/). 
+
+A screenshot taken from the license plate project:
+
+![plates](/_images/licensePlates.png)
